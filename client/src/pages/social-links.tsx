@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, ExternalLink, Trash2, Edit2, Save, X, Loader2 } from "lucide-react";
-import { SiGithub, SiLinkedin, SiTwitter, SiInstagram, SiFacebook, SiYoutube } from "react-icons/si";
+import { SiGithub, SiLinkedin, SiX, SiInstagram, SiFacebook, SiYoutube } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -15,7 +15,7 @@ import type { SocialLink } from "@shared/schema";
 const platformIcons: Record<string, { icon: React.ComponentType<{ className?: string }>, color: string }> = {
   GitHub: { icon: SiGithub, color: "text-gray-900 dark:text-gray-100" },
   LinkedIn: { icon: SiLinkedin, color: "text-blue-600" },
-  Twitter: { icon: SiTwitter, color: "text-sky-500" },
+  Twitter: { icon: SiX, color: "text-gray-900 dark:text-gray-100" },
   Instagram: { icon: SiInstagram, color: "text-pink-600" },
   Facebook: { icon: SiFacebook, color: "text-blue-600" },
   YouTube: { icon: SiYoutube, color: "text-red-600" },
