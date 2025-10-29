@@ -1,0 +1,58 @@
+> Build a modern, responsive React + TypeScript + TailwindCSS 4 web app UI with multiple pages that together form a personal “User Handbook” system.
+>
+> The app should have the following pages and sections:
+>
+> **1. Home / Dashboard Page:**
+>
+> * A clean landing dashboard showing the user's name, profile picture, and quick summary.
+> * Buttons or links to navigate to other sections (Profile, Social Links, Vault).
+> * A subtle gradient or glassmorphism background for a professional feel.
+>
+> **2. Profile Page:**
+>
+> * A detailed user profile page showing:
+>
+>   * Basic info: name, email, phone, age, gender, and address.
+>   * In-depth info section (like a personal handbook): biography, hobbies, skills, goals, and notes.
+> * Editable input boxes for each field with a save button.
+> * Use modern cards, rounded corners, and subtle shadows for sections.
+>
+> **3. Social Links Page:**
+>
+> * A section where the user can add, edit, and delete links to their social media profiles.
+> * Each social link should display an icon (e.g., GitHub, LinkedIn, Instagram, Twitter, etc.) and the username/link.
+> * Include an “Add Link” modal with input validation.
+> * Make the layout responsive — cards or grid view on large screens, stacked view on mobile.
+>
+> **4. Vault Page (Secure Password Manager):**
+>
+> * A secure-looking page (dark theme or card-glass theme).
+> * A list of stored credentials (site name, username, password — password masked by default).
+> * Show/hide password toggle.
+> * Add, edit, and delete credentials using a modal or drawer.
+> * Before viewing passwords, prompt the user to enter a 4-digit PIN to unlock the vault.
+> * Include subtle animations (e.g., fade-in modals, hover transitions).
+>
+> **General UI Guidelines:**
+>
+> * Clean, modern, and minimalistic — similar to Apple, Notion, or Linear design systems.
+> * Use consistent color palette (e.g., soft beige, neutral gray, muted blue accents).
+> * Rounded corners (2xl+), soft shadows, and balanced spacing.
+> * Use Tailwind utility classes efficiently for responsiveness.
+> * Navbar and Sidebar for navigation between pages.
+> * Use reusable components: `Card`, `Button`, `InputBox`, `Modal`, and `ProtectedInput` (for vault).
+>
+> **Deliverables:**
+>
+> * Each page built as a separate React component.
+> * Routes handled using React Router.
+> * All UI written in TypeScript with TailwindCSS 4 classes.
+> * Focus purely on UI (no backend integration yet).
+> * Include dummy sample data for demonstration.
+>
+> **Bonus (optional):**
+>
+> * Add light/dark mode toggle.
+> * Add subtle animations using Framer Motion.
+> * Make the entire design mobile-first and fully responsive.
+
