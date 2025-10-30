@@ -1,31 +1,63 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Shield, Lock, Eye, EyeOff, Plus, Copy, Trash2, Edit2, Save, X, AlertCircle, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { VaultCredential, VaultSetting } from "@shared/schema";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
+import {
+  Shield,
+  Lock,
+  Eye,
+  EyeOff,
+  Plus,
+  Copy,
+  Trash2,
+  Edit2,
+  Save,
+  X,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import { useToast } from "../lib/hooks/use-toast";
+import { Alert, AlertDescription } from "../components/ui/alert";
+
+// Define credential type for local state
+interface VaultCredential {
+  id: string;
+  siteName: string;
+  username: string;
+  password: string;
+  url?: string;
+  notes?: string;
+}
 
 export default function Vault() {
   const { toast } = useToast();
+
+  // Vault unlock state
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState(false);
+  const correctPin = "1234"; // demo pin
 
-  const { data: credentials = [], isLoading: credentialsLoading } = useQuery<VaultCredential[]>({
-    queryKey: ["/api/vault/credentials"],
-    enabled: isUnlocked,
-  });
+  // Local credential storage
+  const [credentials, setCredentials] = useState<VaultCredential[]>([]);
 
-  const { data: vaultSetting, isLoading: settingLoading } = useQuery<VaultSetting>({
-    queryKey: ["/api/vault/setting"],
-  });
-
+  // Local form + dialog states
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -37,44 +69,13 @@ export default function Vault() {
     notes: "",
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (data: Omit<VaultCredential, "id">) => {
-      return await apiRequest("POST", "/api/vault/credentials", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vault/credentials"] });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<VaultCredential> }) => {
-      return await apiRequest("PATCH", `/api/vault/credentials/${id}`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vault/credentials"] });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await apiRequest("DELETE", `/api/vault/credentials/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vault/credentials"] });
-    },
-  });
-
-  const handlePinSubmit = async (e: React.FormEvent) => {
+  // Unlock vault
+  const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const correctPin = vaultSetting?.pin || "1234";
-    
     if (pin === correctPin) {
       setIsUnlocked(true);
       setPinError(false);
-      toast({
-        title: "Vault unlocked",
-        description: "Welcome to your secure vault.",
-      });
+      toast({ title: "Vault unlocked", description: "Welcome to your secure vault." });
     } else {
       setPinError(true);
       setPin("");
@@ -86,26 +87,22 @@ export default function Vault() {
     }
   };
 
+  // Toggle password visibility
   const togglePasswordVisibility = (id: string) => {
-    setVisiblePasswords(prev => {
+    setVisiblePasswords((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
+      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
       return newSet;
     });
   };
 
+  // Copy to clipboard
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: `${label} copied to clipboard.`,
-    });
+    toast({ title: "Copied!", description: `${label} copied to clipboard.` });
   };
 
+  // Add new credential
   const handleAdd = () => {
     if (!formData.siteName || !formData.username || !formData.password) {
       toast({
@@ -116,14 +113,12 @@ export default function Vault() {
       return;
     }
 
-    createMutation.mutate({
-      siteName: formData.siteName,
-      username: formData.username,
-      password: formData.password,
-      url: formData.url || null,
-      notes: formData.notes || null,
-    });
+    const newCredential: VaultCredential = {
+      id: Date.now().toString(),
+      ...formData,
+    };
 
+    setCredentials((prev) => [...prev, newCredential]);
     setFormData({ siteName: "", username: "", password: "", url: "", notes: "" });
     setIsAddDialogOpen(false);
     toast({
@@ -132,6 +127,7 @@ export default function Vault() {
     });
   };
 
+  // Edit and update
   const handleEdit = (credential: VaultCredential) => {
     setEditingId(credential.id);
     setFormData({
@@ -144,16 +140,9 @@ export default function Vault() {
   };
 
   const handleUpdate = (id: string) => {
-    updateMutation.mutate({
-      id,
-      data: {
-        siteName: formData.siteName,
-        username: formData.username,
-        password: formData.password,
-        url: formData.url || null,
-        notes: formData.notes || null,
-      },
-    });
+    setCredentials((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...formData } : c))
+    );
     setEditingId(null);
     setFormData({ siteName: "", username: "", password: "", url: "", notes: "" });
     toast({
@@ -162,27 +151,22 @@ export default function Vault() {
     });
   };
 
+  // Delete
   const handleDelete = (id: string, siteName: string) => {
-    deleteMutation.mutate(id);
+    setCredentials((prev) => prev.filter((c) => c.id !== id));
     toast({
       title: "Credential deleted",
       description: `Credentials for ${siteName} have been removed.`,
     });
   };
 
+  // Cancel editing
   const handleCancel = () => {
     setEditingId(null);
     setFormData({ siteName: "", username: "", password: "", url: "", notes: "" });
   };
 
-  if (settingLoading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
+  // Lock vault
   if (!isUnlocked) {
     return (
       <div className="h-full flex items-center justify-center p-6">
@@ -203,9 +187,7 @@ export default function Vault() {
               {pinError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Incorrect PIN. Please try again.
-                  </AlertDescription>
+                  <AlertDescription>Incorrect PIN. Please try again.</AlertDescription>
                 </Alert>
               )}
               <div className="space-y-2">
@@ -217,29 +199,20 @@ export default function Vault() {
                     inputMode="numeric"
                     maxLength={4}
                     value={pin}
-                    onChange={(e) => {
-                      setPin(e.target.value.replace(/\D/g, ""));
-                      setPinError(false);
-                    }}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                     placeholder="••••"
                     className="text-center text-2xl tracking-widest font-mono"
-                    data-testid="input-pin"
                     autoFocus
                   />
                   <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 </div>
               </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={pin.length !== 4}
-                data-testid="button-unlock"
-              >
+              <Button type="submit" className="w-full" disabled={pin.length !== 4}>
                 <Shield className="h-4 w-4 mr-2" />
                 Unlock Vault
               </Button>
               <p className="text-xs text-center text-muted-foreground">
-                For demo purposes, the PIN is: {vaultSetting?.pin || "1234"}
+                For demo purposes, the PIN is: {correctPin}
               </p>
             </form>
           </CardContent>
@@ -248,14 +221,7 @@ export default function Vault() {
     );
   }
 
-  if (credentialsLoading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
+  // Main vault UI
   return (
     <div className="h-full overflow-auto">
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-12">
@@ -265,19 +231,18 @@ export default function Vault() {
               <Shield className="h-8 w-8 text-primary" />
               Secure Vault
             </h1>
-            <p className="text-muted-foreground">
-              Your encrypted password manager
-            </p>
+            <p className="text-muted-foreground">Your encrypted password manager</p>
           </div>
           <div className="flex gap-3">
+            {/* Add Credential Dialog */}
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button data-testid="button-add-credential">
+                <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Credential
                 </Button>
               </DialogTrigger>
-              <DialogContent data-testid="dialog-add-credential">
+              <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add New Credential</DialogTitle>
                   <DialogDescription>
@@ -285,77 +250,49 @@ export default function Vault() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="siteName">Site Name *</Label>
-                    <Input
-                      id="siteName"
-                      placeholder="e.g., GitHub"
-                      value={formData.siteName}
-                      onChange={(e) => setFormData({ ...formData, siteName: e.target.value })}
-                      data-testid="input-site-name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username *</Label>
-                    <Input
-                      id="username"
-                      placeholder="username or email"
-                      value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      data-testid="input-credential-username"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      data-testid="input-credential-password"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="url">Website URL</Label>
-                    <Input
-                      id="url"
-                      placeholder="https://..."
-                      value={formData.url}
-                      onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                      data-testid="input-credential-url"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes</Label>
-                    <Input
-                      id="notes"
-                      placeholder="Additional information"
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      data-testid="input-credential-notes"
-                    />
-                  </div>
+                  {["siteName", "username", "password", "url", "notes"].map((field) => (
+                    <div className="space-y-2" key={field}>
+                      <Label htmlFor={field}>
+                        {field === "siteName"
+                          ? "Site Name *"
+                          : field === "username"
+                          ? "Username *"
+                          : field === "password"
+                          ? "Password *"
+                          : field === "url"
+                          ? "Website URL"
+                          : "Notes"}
+                      </Label>
+                      <Input
+                        id={field}
+                        type={field === "password" ? "password" : "text"}
+                        placeholder={
+                          field === "siteName"
+                            ? "e.g., GitHub"
+                            : field === "url"
+                            ? "https://..."
+                            : field === "notes"
+                            ? "Additional information"
+                            : ""
+                        }
+                        value={(formData as any)[field]}
+                        onChange={(e) =>
+                          setFormData({ ...formData, [field]: e.target.value })
+                        }
+                      />
+                    </div>
+                  ))}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAdd} disabled={createMutation.isPending} data-testid="button-save-credential">
-                    {createMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      "Save Credential"
-                    )}
-                  </Button>
+                  <Button onClick={handleAdd}>Save Credential</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <Button
-              variant="outline"
-              onClick={() => setIsUnlocked(false)}
-              data-testid="button-lock-vault"
-            >
+
+            <Button variant="outline" onClick={() => setIsUnlocked(false)}>
               <Lock className="h-4 w-4 mr-2" />
               Lock Vault
             </Button>
@@ -385,68 +322,33 @@ export default function Vault() {
               const isPasswordVisible = visiblePasswords.has(credential.id);
 
               return (
-                <Card
-                  key={credential.id}
-                  className="border-card-border hover-elevate transition-all duration-200"
-                  data-testid={`card-credential-${credential.id}`}
-                >
+                <Card key={credential.id} className="border-card-border transition-all duration-200">
                   <CardContent className="p-6">
                     {isEditing ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Site Name</Label>
-                            <Input
-                              value={formData.siteName}
-                              onChange={(e) => setFormData({ ...formData, siteName: e.target.value })}
-                              data-testid={`input-edit-site-${credential.id}`}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Username</Label>
-                            <Input
-                              value={formData.username}
-                              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                              data-testid={`input-edit-username-${credential.id}`}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Password</Label>
-                            <Input
-                              type="password"
-                              value={formData.password}
-                              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                              data-testid={`input-edit-password-${credential.id}`}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>URL</Label>
-                            <Input
-                              value={formData.url}
-                              onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                              data-testid={`input-edit-url-${credential.id}`}
-                            />
-                          </div>
+                          {["siteName", "username", "password", "url"].map((field) => (
+                            <div className="space-y-2" key={field}>
+                              <Label>
+                                {field.charAt(0).toUpperCase() + field.slice(1)}
+                              </Label>
+                              <Input
+                                type={field === "password" ? "password" : "text"}
+                                value={(formData as any)[field]}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, [field]: e.target.value })
+                                }
+                              />
+                            </div>
+                          ))}
                         </div>
                         <div className="flex justify-end gap-3 pt-4 border-t">
-                          <Button
-                            variant="outline"
-                            onClick={handleCancel}
-                            data-testid={`button-cancel-edit-${credential.id}`}
-                          >
+                          <Button variant="outline" onClick={handleCancel}>
                             <X className="h-4 w-4 mr-2" />
                             Cancel
                           </Button>
-                          <Button
-                            onClick={() => handleUpdate(credential.id)}
-                            disabled={updateMutation.isPending}
-                            data-testid={`button-save-edit-${credential.id}`}
-                          >
-                            {updateMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Save className="h-4 w-4 mr-2" />
-                            )}
+                          <Button onClick={() => handleUpdate(credential.id)}>
+                            <Save className="h-4 w-4 mr-2" />
                             Save Changes
                           </Button>
                         </div>
@@ -459,7 +361,7 @@ export default function Vault() {
                               <Shield className="h-5 w-5 text-primary" />
                             </div>
                             <div>
-                              <h3 className="font-semibold text-foreground">{credential.siteName}</h3>
+                              <h3 className="font-semibold">{credential.siteName}</h3>
                               {credential.url && (
                                 <a
                                   href={credential.url}
@@ -475,15 +377,16 @@ export default function Vault() {
                         </div>
 
                         <div className="md:col-span-3">
-                          <Label className="text-xs text-muted-foreground mb-1 block">Username</Label>
+                          <Label className="text-xs text-muted-foreground mb-1 block">
+                            Username
+                          </Label>
                           <div className="flex items-center gap-2">
-                            <code className="text-sm font-mono text-foreground">{credential.username}</code>
+                            <code className="text-sm font-mono">{credential.username}</code>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7"
                               onClick={() => copyToClipboard(credential.username, "Username")}
-                              data-testid={`button-copy-username-${credential.id}`}
                             >
                               <Copy className="h-3 w-3" />
                             </Button>
@@ -491,9 +394,11 @@ export default function Vault() {
                         </div>
 
                         <div className="md:col-span-3">
-                          <Label className="text-xs text-muted-foreground mb-1 block">Password</Label>
+                          <Label className="text-xs text-muted-foreground mb-1 block">
+                            Password
+                          </Label>
                           <div className="flex items-center gap-2">
-                            <code className="text-sm font-mono text-foreground">
+                            <code className="text-sm font-mono">
                               {isPasswordVisible ? credential.password : "••••••••"}
                             </code>
                             <Button
@@ -501,7 +406,6 @@ export default function Vault() {
                               size="icon"
                               className="h-7 w-7"
                               onClick={() => togglePasswordVisibility(credential.id)}
-                              data-testid={`button-toggle-password-${credential.id}`}
                             >
                               {isPasswordVisible ? (
                                 <EyeOff className="h-3 w-3" />
@@ -514,7 +418,6 @@ export default function Vault() {
                               size="icon"
                               className="h-7 w-7"
                               onClick={() => copyToClipboard(credential.password, "Password")}
-                              data-testid={`button-copy-password-${credential.id}`}
                             >
                               <Copy className="h-3 w-3" />
                             </Button>
@@ -522,26 +425,15 @@ export default function Vault() {
                         </div>
 
                         <div className="md:col-span-3 flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(credential)}
-                            data-testid={`button-edit-credential-${credential.id}`}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(credential)}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDelete(credential.id, credential.siteName)}
-                            disabled={deleteMutation.isPending}
-                            data-testid={`button-delete-credential-${credential.id}`}
                           >
-                            {deleteMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            )}
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       </div>

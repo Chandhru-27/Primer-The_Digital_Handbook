@@ -1,18 +1,60 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ExternalLink, Trash2, Edit2, Save, X, Loader2 } from "lucide-react";
-import { SiGithub, SiLinkedin, SiX, SiInstagram, SiFacebook, SiYoutube } from "react-icons/si";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { SocialLink } from "@shared/schema";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import {
+  Plus,
+  ExternalLink,
+  Trash2,
+  Edit2,
+  Save,
+  X,
+  Loader2,
+} from "lucide-react";
+import {
+  SiGithub,
+  SiLinkedin,
+  SiX,
+  SiInstagram,
+  SiFacebook,
+  SiYoutube,
+} from "react-icons/si";
+import { useToast } from "../lib/hooks/use-toast";
 
-const platformIcons: Record<string, { icon: React.ComponentType<{ className?: string }>, color: string }> = {
+type SocialLink = {
+  id: string;
+  platform: string;
+  username: string;
+  url: string;
+};
+
+const platformIcons: Record<
+  string,
+  { icon: React.ComponentType<{ className?: string }>; color: string }
+> = {
   GitHub: { icon: SiGithub, color: "text-gray-900 dark:text-gray-100" },
   LinkedIn: { icon: SiLinkedin, color: "text-blue-600" },
   Twitter: { icon: SiX, color: "text-gray-900 dark:text-gray-100" },
@@ -23,10 +65,8 @@ const platformIcons: Record<string, { icon: React.ComponentType<{ className?: st
 
 export default function SocialLinks() {
   const { toast } = useToast();
-  const { data: links = [], isLoading } = useQuery<SocialLink[]>({
-    queryKey: ["/api/social-links"],
-  });
 
+  const [links, setLinks] = useState<SocialLink[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -34,33 +74,7 @@ export default function SocialLinks() {
     username: "",
     url: "",
   });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: { platform: string; username: string; url: string; icon: string }) => {
-      return await apiRequest("POST", "/api/social-links", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social-links"] });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<SocialLink> }) => {
-      return await apiRequest("PATCH", `/api/social-links/${id}`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social-links"] });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await apiRequest("DELETE", `/api/social-links/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/social-links"] });
-    },
-  });
+  const [loading, setLoading] = useState(false);
 
   const handleAdd = () => {
     if (!formData.platform || !formData.username || !formData.url) {
@@ -72,18 +86,20 @@ export default function SocialLinks() {
       return;
     }
 
-    createMutation.mutate({
+    const newLink: SocialLink = {
+      id: Date.now().toString(),
       platform: formData.platform,
       username: formData.username,
       url: formData.url,
-      icon: formData.platform.toLowerCase(),
-    });
+    };
 
+    setLinks((prev) => [...prev, newLink]);
     setFormData({ platform: "", username: "", url: "" });
     setIsAddDialogOpen(false);
+
     toast({
       title: "Link added",
-      description: `Your ${formData.platform} profile has been added successfully.`,
+      description: `Your ${newLink.platform} profile has been added successfully.`,
     });
   };
 
@@ -97,24 +113,24 @@ export default function SocialLinks() {
   };
 
   const handleUpdate = (id: string) => {
-    updateMutation.mutate({
-      id,
-      data: {
-        platform: formData.platform,
-        username: formData.username,
-        url: formData.url,
-      },
-    });
-    setEditingId(null);
-    setFormData({ platform: "", username: "", url: "" });
-    toast({
-      title: "Link updated",
-      description: "Your social link has been updated successfully.",
-    });
+    setLoading(true);
+    setTimeout(() => {
+      setLinks((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, ...formData } : l))
+      );
+      setEditingId(null);
+      setFormData({ platform: "", username: "", url: "" });
+      setLoading(false);
+
+      toast({
+        title: "Link updated",
+        description: "Your social link has been updated successfully.",
+      });
+    }, 500);
   };
 
   const handleDelete = (id: string, platform: string) => {
-    deleteMutation.mutate(id);
+    setLinks((prev) => prev.filter((l) => l.id !== id));
     toast({
       title: "Link removed",
       description: `Your ${platform} profile has been removed successfully.`,
@@ -126,14 +142,6 @@ export default function SocialLinks() {
     setFormData({ platform: "", username: "", url: "" });
   };
 
-  if (isLoading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   return (
     <div className="h-full overflow-auto">
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-12">
@@ -144,28 +152,33 @@ export default function SocialLinks() {
               Connect and manage your social media presence
             </p>
           </div>
+
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="button-add-link">
+              <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Link
               </Button>
             </DialogTrigger>
-            <DialogContent data-testid="dialog-add-link">
+
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add Social Link</DialogTitle>
                 <DialogDescription>
                   Connect a new social media profile to your handbook
                 </DialogDescription>
               </DialogHeader>
+
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="platform">Platform</Label>
+                  <Label>Platform</Label>
                   <Select
                     value={formData.platform}
-                    onValueChange={(value) => setFormData({ ...formData, platform: value })}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, platform: value })
+                    }
                   >
-                    <SelectTrigger data-testid="select-platform">
+                    <SelectTrigger>
                       <SelectValue placeholder="Select a platform" />
                     </SelectTrigger>
                     <SelectContent>
@@ -177,38 +190,35 @@ export default function SocialLinks() {
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <Label>Username</Label>
                   <Input
-                    id="username"
                     placeholder="@username"
                     value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    data-testid="input-username"
+                    onChange={(e) =>
+                      setFormData({ ...formData, username: e.target.value })
+                    }
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="url">Profile URL</Label>
+                  <Label>Profile URL</Label>
                   <Input
-                    id="url"
                     placeholder="https://..."
                     value={formData.url}
-                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    data-testid="input-url"
+                    onChange={(e) =>
+                      setFormData({ ...formData, url: e.target.value })
+                    }
                   />
                 </div>
               </div>
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAdd} disabled={createMutation.isPending} data-testid="button-save-link">
-                  {createMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    "Add Link"
-                  )}
-                </Button>
+                <Button onClick={handleAdd}>Add Link</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -240,13 +250,14 @@ export default function SocialLinks() {
                 <Card
                   key={link.id}
                   className="group hover-elevate active-elevate-2 transition-all duration-300 border-card-border"
-                  data-testid={`card-link-${link.id}`}
                 >
                   <CardHeader className="space-y-4">
                     <div className="flex items-start justify-between">
                       <div className="p-3 rounded-lg bg-muted">
                         {IconComponent && (
-                          <IconComponent className={`h-8 w-8 ${platformIcons[link.platform]?.color}`} />
+                          <IconComponent
+                            className={`h-8 w-8 ${platformIcons[link.platform]?.color}`}
+                          />
                         )}
                       </div>
                       {!isEditing && (
@@ -255,7 +266,6 @@ export default function SocialLinks() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEdit(link)}
-                            data-testid={`button-edit-${link.id}`}
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -263,14 +273,8 @@ export default function SocialLinks() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDelete(link.id, link.platform)}
-                            data-testid={`button-delete-${link.id}`}
-                            disabled={deleteMutation.isPending}
                           >
-                            {deleteMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            )}
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       )}
@@ -281,14 +285,16 @@ export default function SocialLinks() {
                         <Input
                           placeholder="Username"
                           value={formData.username}
-                          onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                          data-testid={`input-edit-username-${link.id}`}
+                          onChange={(e) =>
+                            setFormData({ ...formData, username: e.target.value })
+                          }
                         />
                         <Input
                           placeholder="URL"
                           value={formData.url}
-                          onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                          data-testid={`input-edit-url-${link.id}`}
+                          onChange={(e) =>
+                            setFormData({ ...formData, url: e.target.value })
+                          }
                         />
                       </div>
                     ) : (
@@ -300,6 +306,7 @@ export default function SocialLinks() {
                       </>
                     )}
                   </CardHeader>
+
                   <CardContent>
                     {isEditing ? (
                       <div className="flex gap-2">
@@ -308,7 +315,6 @@ export default function SocialLinks() {
                           size="sm"
                           className="flex-1"
                           onClick={handleCancel}
-                          data-testid={`button-cancel-edit-${link.id}`}
                         >
                           <X className="h-4 w-4 mr-2" />
                           Cancel
@@ -317,10 +323,9 @@ export default function SocialLinks() {
                           size="sm"
                           className="flex-1"
                           onClick={() => handleUpdate(link.id)}
-                          disabled={updateMutation.isPending}
-                          data-testid={`button-save-edit-${link.id}`}
+                          disabled={loading}
                         >
-                          {updateMutation.isPending ? (
+                          {loading ? (
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           ) : (
                             <Save className="h-4 w-4 mr-2" />
@@ -329,13 +334,12 @@ export default function SocialLinks() {
                         </Button>
                       </div>
                     ) : (
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        asChild
-                        data-testid={`button-visit-${link.id}`}
-                      >
-                        <a href={link.url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" className="w-full" asChild>
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           Visit Profile
                           <ExternalLink className="h-4 w-4 ml-2" />
                         </a>
