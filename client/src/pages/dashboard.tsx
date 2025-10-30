@@ -116,13 +116,10 @@ export default function Dashboard() {
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                     Welcome back, {userName.split(" ")[0]}!
                   </h1>
-                  <Badge variant="secondary" className="hidden md:inline-flex">
-                    Active
-                  </Badge>
                 </div>
 
                 <p className="text-muted-foreground text-lg mb-4">
-                  Your personal handbook is ready to help you stay organized
+                  Primer - Your personal handbook is ready to help you stay organized
                   and secure.
                 </p>
 
@@ -188,7 +185,7 @@ export default function Dashboard() {
         </div>
 
         {/* 🕒 Recent Activity */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Your latest updates and changes</CardDescription>
@@ -237,7 +234,7 @@ export default function Dashboard() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );
