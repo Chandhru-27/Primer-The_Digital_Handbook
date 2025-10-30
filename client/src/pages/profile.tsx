@@ -1,25 +1,59 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, X, Edit2, User, Mail, Phone, MapPin, Calendar, Users, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Profile } from "@shared/schema";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import {
+  Save,
+  X,
+  Edit2,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Users,
+  Loader2,
+} from "lucide-react";
+import { useToast } from "../lib/hooks/use-toast";
+
+// Mock profile data
+const mockProfile = {
+  id: 1,
+  name: "Chandhru Loganathan",
+  email: "chandhru@example.com",
+  phone: "+91 9876543210",
+  age: 21,
+  gender: "Male",
+  address: "Chennai, India",
+  biography:
+    "I am a passionate engineering student pursuing AI & Data Science. I love coding and building creative projects.",
+  hobbies: "Gaming, Coding, Reading, Traveling",
+  skills: "C, C++, Python, React, MySQL, WordPress",
+  goals: "Become a full-stack developer and a game developer.",
+  notes: "Always keep learning and stay consistent.",
+  profilePicture: "",
+};
 
 export default function Profile() {
   const [isEditingBasic, setIsEditingBasic] = useState(false);
   const [isEditingHandbook, setIsEditingHandbook] = useState(false);
   const { toast } = useToast();
-
-  const { data: profile, isLoading } = useQuery<Profile>({
-    queryKey: ["/api/profile"],
-  });
 
   const [basicInfo, setBasicInfo] = useState({
     name: "",
@@ -38,45 +72,32 @@ export default function Profile() {
     notes: "",
   });
 
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate data loading (mock)
   useEffect(() => {
-    if (profile) {
+    const timer = setTimeout(() => {
       setBasicInfo({
-        name: profile.name || "",
-        email: profile.email || "",
-        phone: profile.phone || "",
-        age: profile.age?.toString() || "",
-        gender: profile.gender || "",
-        address: profile.address || "",
+        name: mockProfile.name,
+        email: mockProfile.email,
+        phone: mockProfile.phone,
+        age: mockProfile.age.toString(),
+        gender: mockProfile.gender,
+        address: mockProfile.address,
       });
       setHandbookInfo({
-        biography: profile.biography || "",
-        hobbies: profile.hobbies || "",
-        skills: profile.skills || "",
-        goals: profile.goals || "",
-        notes: profile.notes || "",
+        biography: mockProfile.biography,
+        hobbies: mockProfile.hobbies,
+        skills: mockProfile.skills,
+        goals: mockProfile.goals,
+        notes: mockProfile.notes,
       });
-    }
-  }, [profile]);
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: Partial<Profile>) => {
-      if (!profile) throw new Error("No profile found");
-      return await apiRequest("PATCH", `/api/profile/${profile.id}`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-    },
-  });
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSaveBasic = () => {
-    updateMutation.mutate({
-      name: basicInfo.name,
-      email: basicInfo.email,
-      phone: basicInfo.phone,
-      age: basicInfo.age ? parseInt(basicInfo.age) : null,
-      gender: basicInfo.gender,
-      address: basicInfo.address,
-    });
     toast({
       title: "Profile updated",
       description: "Your basic information has been saved successfully.",
@@ -85,13 +106,6 @@ export default function Profile() {
   };
 
   const handleSaveHandbook = () => {
-    updateMutation.mutate({
-      biography: handbookInfo.biography,
-      hobbies: handbookInfo.hobbies,
-      skills: handbookInfo.skills,
-      goals: handbookInfo.goals,
-      notes: handbookInfo.notes,
-    });
     toast({
       title: "Handbook updated",
       description: "Your personal handbook has been saved successfully.",
@@ -117,10 +131,11 @@ export default function Profile() {
           </p>
         </div>
 
+        {/* Avatar */}
         <div className="mb-8 flex justify-center">
           <div className="relative group">
             <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl">
-              <AvatarImage src={profile?.profilePicture || ""} alt={basicInfo.name} />
+              <AvatarImage src={mockProfile.profilePicture || ""} alt={basicInfo.name} />
               <AvatarFallback className="bg-primary text-primary-foreground text-4xl font-bold">
                 {basicInfo.name
                   .split(" ")
@@ -132,13 +147,13 @@ export default function Profile() {
               size="icon"
               variant="secondary"
               className="absolute bottom-0 right-0 rounded-full shadow-lg"
-              data-testid="button-upload-avatar"
             >
               <Edit2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
+        {/* Basic Information */}
         <Card className="mb-6 border-card-border">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -154,7 +169,6 @@ export default function Profile() {
                   variant="outline"
                   size="sm"
                   onClick={() => setIsEditingBasic(true)}
-                  data-testid="button-edit-basic"
                 >
                   <Edit2 className="h-4 w-4 mr-2" />
                   Edit
@@ -162,8 +176,10 @@ export default function Profile() {
               )}
             </div>
           </CardHeader>
+
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Full Name */}
               <div className="space-y-2">
                 <Label htmlFor="name" className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
@@ -173,14 +189,16 @@ export default function Profile() {
                   <Input
                     id="name"
                     value={basicInfo.name}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, name: e.target.value })}
-                    data-testid="input-name"
+                    onChange={(e) =>
+                      setBasicInfo({ ...basicInfo, name: e.target.value })
+                    }
                   />
                 ) : (
                   <p className="text-foreground py-2">{basicInfo.name}</p>
                 )}
               </div>
 
+              {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
@@ -191,14 +209,16 @@ export default function Profile() {
                     id="email"
                     type="email"
                     value={basicInfo.email}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, email: e.target.value })}
-                    data-testid="input-email"
+                    onChange={(e) =>
+                      setBasicInfo({ ...basicInfo, email: e.target.value })
+                    }
                   />
                 ) : (
                   <p className="text-foreground py-2">{basicInfo.email}</p>
                 )}
               </div>
 
+              {/* Phone */}
               <div className="space-y-2">
                 <Label htmlFor="phone" className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
@@ -208,14 +228,16 @@ export default function Profile() {
                   <Input
                     id="phone"
                     value={basicInfo.phone}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, phone: e.target.value })}
-                    data-testid="input-phone"
+                    onChange={(e) =>
+                      setBasicInfo({ ...basicInfo, phone: e.target.value })
+                    }
                   />
                 ) : (
                   <p className="text-foreground py-2">{basicInfo.phone}</p>
                 )}
               </div>
 
+              {/* Age */}
               <div className="space-y-2">
                 <Label htmlFor="age" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -226,14 +248,16 @@ export default function Profile() {
                     id="age"
                     type="number"
                     value={basicInfo.age}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, age: e.target.value })}
-                    data-testid="input-age"
+                    onChange={(e) =>
+                      setBasicInfo({ ...basicInfo, age: e.target.value })
+                    }
                   />
                 ) : (
                   <p className="text-foreground py-2">{basicInfo.age}</p>
                 )}
               </div>
 
+              {/* Gender */}
               <div className="space-y-2">
                 <Label htmlFor="gender" className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
@@ -242,16 +266,20 @@ export default function Profile() {
                 {isEditingBasic ? (
                   <Select
                     value={basicInfo.gender}
-                    onValueChange={(value) => setBasicInfo({ ...basicInfo, gender: value })}
+                    onValueChange={(value) =>
+                      setBasicInfo({ ...basicInfo, gender: value })
+                    }
                   >
-                    <SelectTrigger data-testid="select-gender">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Male">Male</SelectItem>
                       <SelectItem value="Female">Female</SelectItem>
                       <SelectItem value="Other">Other</SelectItem>
-                      <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                      <SelectItem value="Prefer not to say">
+                        Prefer not to say
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (
@@ -259,6 +287,7 @@ export default function Profile() {
                 )}
               </div>
 
+              {/* Address */}
               <div className="space-y-2">
                 <Label htmlFor="address" className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -268,8 +297,9 @@ export default function Profile() {
                   <Input
                     id="address"
                     value={basicInfo.address}
-                    onChange={(e) => setBasicInfo({ ...basicInfo, address: e.target.value })}
-                    data-testid="input-address"
+                    onChange={(e) =>
+                      setBasicInfo({ ...basicInfo, address: e.target.value })
+                    }
                   />
                 ) : (
                   <p className="text-foreground py-2">{basicInfo.address}</p>
@@ -277,22 +307,15 @@ export default function Profile() {
               </div>
             </div>
 
+            {/* Save & Cancel Buttons */}
             {isEditingBasic && (
               <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditingBasic(false)}
-                  data-testid="button-cancel-basic"
-                >
+                <Button variant="outline" onClick={() => setIsEditingBasic(false)}>
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
-                <Button onClick={handleSaveBasic} disabled={updateMutation.isPending} data-testid="button-save-basic">
-                  {updateMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
+                <Button onClick={handleSaveBasic}>
+                  <Save className="h-4 w-4 mr-2" />
                   Save Changes
                 </Button>
               </div>
@@ -300,6 +323,7 @@ export default function Profile() {
           </CardContent>
         </Card>
 
+        {/* Handbook Section */}
         <Card className="border-card-border">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -314,7 +338,6 @@ export default function Profile() {
                   variant="outline"
                   size="sm"
                   onClick={() => setIsEditingHandbook(true)}
-                  data-testid="button-edit-handbook"
                 >
                   <Edit2 className="h-4 w-4 mr-2" />
                   Edit
@@ -322,7 +345,9 @@ export default function Profile() {
               )}
             </div>
           </CardHeader>
+
           <CardContent className="space-y-6">
+            {/* Biography */}
             <div className="space-y-2">
               <Label htmlFor="biography">Biography</Label>
               {isEditingHandbook ? (
@@ -333,13 +358,15 @@ export default function Profile() {
                     setHandbookInfo({ ...handbookInfo, biography: e.target.value })
                   }
                   rows={4}
-                  data-testid="input-biography"
                 />
               ) : (
-                <p className="text-foreground leading-relaxed">{handbookInfo.biography}</p>
+                <p className="text-foreground leading-relaxed">
+                  {handbookInfo.biography}
+                </p>
               )}
             </div>
 
+            {/* Hobbies */}
             <div className="space-y-2">
               <Label htmlFor="hobbies">Hobbies & Interests</Label>
               {isEditingHandbook ? (
@@ -350,13 +377,13 @@ export default function Profile() {
                     setHandbookInfo({ ...handbookInfo, hobbies: e.target.value })
                   }
                   rows={3}
-                  data-testid="input-hobbies"
                 />
               ) : (
                 <p className="text-foreground">{handbookInfo.hobbies}</p>
               )}
             </div>
 
+            {/* Skills */}
             <div className="space-y-2">
               <Label htmlFor="skills">Skills & Expertise</Label>
               {isEditingHandbook ? (
@@ -367,13 +394,13 @@ export default function Profile() {
                     setHandbookInfo({ ...handbookInfo, skills: e.target.value })
                   }
                   rows={3}
-                  data-testid="input-skills"
                 />
               ) : (
                 <p className="text-foreground">{handbookInfo.skills}</p>
               )}
             </div>
 
+            {/* Goals */}
             <div className="space-y-2">
               <Label htmlFor="goals">Goals & Aspirations</Label>
               {isEditingHandbook ? (
@@ -384,13 +411,13 @@ export default function Profile() {
                     setHandbookInfo({ ...handbookInfo, goals: e.target.value })
                   }
                   rows={3}
-                  data-testid="input-goals"
                 />
               ) : (
                 <p className="text-foreground">{handbookInfo.goals}</p>
               )}
             </div>
 
+            {/* Notes */}
             <div className="space-y-2">
               <Label htmlFor="notes">Personal Notes</Label>
               {isEditingHandbook ? (
@@ -401,29 +428,21 @@ export default function Profile() {
                     setHandbookInfo({ ...handbookInfo, notes: e.target.value })
                   }
                   rows={3}
-                  data-testid="input-notes"
                 />
               ) : (
                 <p className="text-foreground">{handbookInfo.notes}</p>
               )}
             </div>
 
+            {/* Save & Cancel Buttons */}
             {isEditingHandbook && (
               <div className="flex justify-end gap-3 pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditingHandbook(false)}
-                  data-testid="button-cancel-handbook"
-                >
+                <Button variant="outline" onClick={() => setIsEditingHandbook(false)}>
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
-                <Button onClick={handleSaveHandbook} disabled={updateMutation.isPending} data-testid="button-save-handbook">
-                  {updateMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
+                <Button onClick={handleSaveHandbook}>
+                  <Save className="h-4 w-4 mr-2" />
                   Save Changes
                 </Button>
               </div>
