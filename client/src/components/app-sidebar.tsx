@@ -112,7 +112,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">v1.0.0</p>
+          <p className="text-xl text-muted-foreground">Primer</p>
           <ThemeToggle />
         </div>
       </SidebarFooter>
