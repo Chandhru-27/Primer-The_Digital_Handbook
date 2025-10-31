@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 import psycopg2
 import os
 from dotenv import load_dotenv
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 load_dotenv()
 
@@ -18,9 +19,10 @@ def get_db_connection():
 
 # 1. Create  personal info (user_id required)
 @personal_bp.route('/save', methods=['POST'])
+@jwt_required()
 def save_personal_info():
-    data = request.json
-    user_id = data.get('user_id')  # From frontend, can be passed after sign up
+    user_id = get_jwt_identity()
+    data = request.json  # From frontend, can be passed after sign up
     profile_pic = data.get('profile_pic')
     name = data.get('name')
     profession = data.get('profession')
@@ -51,8 +53,10 @@ def save_personal_info():
     return jsonify({"message": msg})
 
 # 2. Get personal info
-@personal_bp.route('/<int:user_id>', methods=['GET'])
+@personal_bp.route('/me', methods=['GET'])
+@jwt_required()
 def get_personal_info(user_id):
+    user_id = get_jwt_identity()
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT profile_pic, name, profession, city, state FROM personal_info WHERE user_id=%s;", (user_id,))
@@ -66,9 +70,10 @@ def get_personal_info(user_id):
         return jsonify({"error": "No profile info found"}), 404
 
 @personal_bp.route('/update', methods=['POST'])
+@jwt_required()
 def update_personal_info():
+    user_id = get_jwt_identity()
     data = request.json
-    user_id = data.get('user_id')
     profile_pic = data.get('profile_pic')
     name = data.get('name')
     profession = data.get('profession')

@@ -3,6 +3,7 @@ import psycopg2
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 load_dotenv()
 
@@ -19,9 +20,10 @@ def get_db_connection():
 
 # 1. Set or update vault password (only one per user)
 @vault_bp.route('/set_password', methods=['POST'])
+@jwt_required()
 def set_vault_password():
+    user_id = get_jwt_identity()
     data = request.json
-    user_id = data.get('user_id')
     vault_password = data.get('vault_password')
     if not user_id or not vault_password:
         return jsonify({"error": "user_id and vault_password required"}), 400
@@ -49,9 +51,10 @@ def set_vault_password():
 
 #  Add a vault entry (e.g., for google.com, etc.)
 @vault_bp.route('/add', methods=['POST'])
+@jwt_required()
 def add_vault_entry():
+    user_id = get_jwt_identity()
     data = request.json
-    user_id = data.get('user_id')
     domain = data.get('domain')
     account_name = data.get('account_name')
     pin_or_password = data.get('pin_or_password')
@@ -69,8 +72,10 @@ def add_vault_entry():
     return jsonify({"message": "Vault entry added!"}), 201
 
 # 3. List all vault domains (no passwords shown)
-@vault_bp.route('/<int:user_id>', methods=['GET'])
-def get_vault_entries(user_id):
+@vault_bp.route('/get-vault', methods=['GET'])
+@jwt_required()
+def get_vault_entries():
+    user_id = get_jwt_identity()
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
@@ -83,9 +88,10 @@ def get_vault_entries(user_id):
 
 # 4. Get pin/password for a specific account (vault password check required)
 @vault_bp.route('/view', methods=['POST'])
+@jwt_required()
 def view_vault_password():
+    user_id = get_jwt_identity()
     data = request.json
-    user_id = data.get('user_id')
     vault_password = data.get('vault_password')
     entry_id = data.get('entry_id')
     if not user_id or not vault_password or not entry_id:
@@ -117,9 +123,25 @@ def view_vault_password():
 
 # 5. Delete a vault entry
 @vault_bp.route('/delete/<int:entry_id>', methods=['DELETE'])
+@jwt_required()
 def delete_vault_entry(entry_id):
+    user_id = get_jwt_identity()
     conn = get_db_connection()
     cur = conn.cursor()
+
+    cur.execute("SELECT user_id FROM users where id=%s",(user_id,))
+    row = cur.fetchone()
+
+    if not row:
+        cur.close()
+        conn.close()
+        return jsonify({"message: User does not exists"}), 404
+
+    if row[0] != user_id:
+        cur.close()
+        conn.close()
+        return jsonify({"error": "Unauthorized to delete this password"}), 403
+    
     cur.execute("DELETE FROM vault WHERE id=%s", (entry_id,))
     conn.commit()
     cur.close()
@@ -127,7 +149,9 @@ def delete_vault_entry(entry_id):
     return jsonify({"message": "Vault entry deleted!"})
 
 @vault_bp.route('/update/<int:entry_id>', methods=['POST'])
+@jwt_required()
 def update_vault_entry(entry_id):
+    user_id = get_jwt_identity()
     data = request.json
     domain = data.get('domain')
     account_name = data.get('account_name')
@@ -135,6 +159,20 @@ def update_vault_entry(entry_id):
 
     conn = get_db_connection()
     cur = conn.cursor()
+
+    cur.execute("SELECT user_id FROM users where id=%s",(user_id,))
+    row = cur.fetchone()
+
+    if not row:
+        cur.close()
+        conn.close()
+        return jsonify({"message: User does not exists"}), 404
+
+    if row[0] != user_id:
+        cur.close()
+        conn.close()
+        return jsonify({"error": "Unauthorized to update this"}), 403
+
     cur.execute("""
         UPDATE vault SET domain=%s, account_name=%s, pin_or_password=%s WHERE id=%s
     """, (domain, account_name, pin_or_password, entry_id))
