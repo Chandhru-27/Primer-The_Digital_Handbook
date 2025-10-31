@@ -55,7 +55,7 @@ def save_personal_info():
 # 2. Get personal info
 @personal_bp.route('/me', methods=['GET'])
 @jwt_required()
-def get_personal_info(user_id):
+def get_personal_info():
     user_id = get_jwt_identity()
     conn = get_db_connection()
     cur = conn.cursor()
