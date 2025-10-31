@@ -1,4 +1,4 @@
-import { Home, User, Link2, Shield, ChevronRight } from "lucide-react";
+import { Home, User, Link2, Shield, ChevronRight, LogIn, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -13,9 +13,12 @@ import {
   SidebarFooter,
 } from "../components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Button } from "../components/ui/button";
 import { ThemeToggle } from "../components/theme-toggle";
-import UserProfile, { getUserProfile } from "../lib/api/user";
+import { UserProfile, getUserProfile } from "../lib/api/user";
+import { logout } from "../lib/api/auth";
 import { useEffect, useState } from "react";
+import { useToast } from "../lib/hooks/use-toast";
 
 export function AppSidebar() {
   const menuItems = [
@@ -42,18 +45,24 @@ export function AppSidebar() {
   ];
 
   const [user, setUser] = useState<UserProfile>();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [location] = useLocation();
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const data = await getUserProfile();
-        setUser(data);
-      } catch (err) {
-        console.log(err);
-      }
-    };
+  const { toast } = useToast();
 
-    fetchUserProfile();
+  useEffect(() => {
+    const authToken = localStorage.getItem('authToken');
+    const userId = localStorage.getItem('userId');
+
+    if (authToken && userId) {
+      setIsAuthenticated(true);
+      getUserProfile(parseInt(userId)).then((data) => {
+        if ('userName' in data) {
+          setUser(data);
+        }
+      });
+    } else {
+      setIsAuthenticated(false);
+    }
   }, []);
 
   const userName = user?.userName || "Username";
@@ -112,7 +121,34 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <div className="flex items-center justify-between">
-          <p className="text-xl text-muted-foreground">Primer</p>
+          <div className="flex items-center gap-2">
+            {isAuthenticated ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  logout();
+                  setIsAuthenticated(false);
+                  setUser(undefined);
+                  toast({
+                    title: "Logged out",
+                    description: "You have been successfully logged out.",
+                  });
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Log Out
+              </Button>
+            ) : (
+              <Link href="/auth">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Sign In
+                </Button>
+              </Link>
+            )}
+          </div>
           <ThemeToggle />
         </div>
       </SidebarFooter>

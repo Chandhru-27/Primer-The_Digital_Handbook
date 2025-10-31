@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import SocialLinks from "@/pages/social-links";
 import Vault from "@/pages/vault";
+import SigninSignup from "@/pages/signin-signup";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/social-links" component={SocialLinks} />
       <Route path="/vault" component={Vault} />
+      <Route path="/auth" component={SigninSignup} />
       <Route component={NotFound} />
     </Switch>
   );
