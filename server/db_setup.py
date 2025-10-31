@@ -22,6 +22,7 @@ try:
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username VARCHAR(100) UNIQUE NOT NULL,
+            email VARCHAR(255) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL
         );
     """)
@@ -71,11 +72,22 @@ try:
             vault_password VARCHAR(255) NOT NULL,
             set_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+    """)    
+
+        
+    # 6 Token blocklist (stores revoked token JTIs)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS token_blocklist (
+        jti TEXT PRIMARY KEY,
+        token_type TEXT,
+        user_id INTEGER,
+        revoked_at TIMESTAMP DEFAULT now()
+        );
     """)
 
     #Must call conn.commit() as a function
     conn.commit()
-
+    
     print("All tables created successfully or already exist.")
 
 except psycopg2.Error as e:
