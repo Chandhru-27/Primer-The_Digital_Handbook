@@ -54,7 +54,7 @@ def add_token_to_blocklist(jti, token_type, user_id=None):
     cur = conn.cursor()
     cur.execute(
         "INSERT INTO token_blocklist (jti, token_type, user_id, revoked_at) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING;",
-        (jti, token_type, user_id, datetime.utcnow())
+        (jti, token_type, user_id, datetime.datetime.utcnow())
     )
     conn.commit()
     cur.close()
@@ -124,18 +124,13 @@ def signin():
         return jsonify({"error": "Invalid username or password"}), 401
 
     # create and assign tokens
-    access_token = create_access_token(identity=user_id, fresh=True)
-    refresh_token = create_refresh_token(identity=user_id)
-
-    from flask_jwt_extended import decode_token
-    decoded_refresh_token = decode_token(refresh_token).get('jti')
-    add_token_to_blocklist(jti=decoded_refresh_token, token_type='refresh', user_id=user_id)
-
+    access_token = create_access_token(identity=str(user_id), fresh=True)
+    refresh_token = create_refresh_token(identity=str(user_id))
 
     response = jsonify({"message": "Login successful"})
 
     set_access_cookies(response=response, encoded_access_token=access_token)
-    set_refresh_cookies(response=response, decoded_refresh_token=refresh_token)
+    set_refresh_cookies(response=response, encoded_refresh_token=refresh_token)
 
     return response, 200
 
@@ -154,6 +149,12 @@ def refresh_access_token():
     set_access_cookies(response=response, encoded_access_token=new_access_token)
     
     return response,200
+
+@auth_bp.route('/me', methods=['GET'])
+@jwt_required()
+def get_current_user():
+    user_id = get_jwt_identity()
+    return jsonify({"logged_in": True, "user_id":user_id}), 200
 
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
