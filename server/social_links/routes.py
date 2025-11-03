@@ -23,17 +23,21 @@ def add_social_link():
     user_id = get_jwt_identity()
     data = request.json
     platform_name = data.get('platform_name')
+    username = data.get('username')
     profile_link = data.get('profile_link')
 
     if not user_id or not platform_name or not profile_link:
         return jsonify({"error": "Missing fields"}), 400
 
+    if profile_link and not profile_link.startswith(('http://', 'https://')):
+        profile_link = 'https://' + profile_link
+
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO social_links (user_id, platform_name, profile_link)
-        VALUES (%s, %s, %s)
-    """, (user_id, platform_name, profile_link))
+        INSERT INTO social_links (user_id, platform_name, username, profile_link)
+        VALUES (%s, %s, %s, %s)
+    """, (user_id, platform_name, username, profile_link))
     conn.commit()
     cur.close()
     conn.close()
@@ -47,14 +51,14 @@ def get_social_links():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT id, platform_name, profile_link
+        SELECT id, platform_name, username, profile_link
         FROM social_links
         WHERE user_id=%s
     """, (user_id,))
     rows = cur.fetchall()
     cur.close()
     conn.close()
-    links = [{"id": r[0], "platform_name": r[1], "profile_link": r[2]} for r in rows]
+    links = [{"id": r[0], "platform_name": r[1], "username": r[2], "profile_link": r[3]} for r in rows]
     return jsonify(links)
 
 # Delete a specific social link by ID for a user
@@ -92,8 +96,13 @@ def update_social_link(link_id):
     user_id = get_jwt_identity()
     data = request.json
     platform_name = data.get('platform_name')
+    username = data.get('username')
     profile_link = data.get('profile_link')
-    
+
+    # Normalize URL - add https:// if missing
+    if profile_link and not profile_link.startswith(('http://', 'https://')):
+        profile_link = 'https://' + profile_link
+
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -111,10 +120,10 @@ def update_social_link(link_id):
         return jsonify({"error": "Unauthorized to update this link"}), 403
 
     cur.execute("""
-        UPDATE social_links SET platform_name=%s, profile_link=%s WHERE id=%s
-    """, (platform_name, profile_link, link_id))
+        UPDATE social_links SET platform_name=%s, username=%s, profile_link=%s WHERE id=%s
+    """, (platform_name, username, profile_link, link_id))
     conn.commit()
     cur.close()
     conn.close()
-    
+
     return jsonify({"message": "Social link updated!"})
