@@ -69,19 +69,19 @@ def delete_social_link(link_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT user_id FROM users where id=%s",(user_id,))
+    cur.execute("SELECT user_id FROM social_links WHERE id=%s", (link_id,))
     row = cur.fetchone()
 
     if not row:
         cur.close()
         conn.close()
-        return jsonify({"message: User does not exists"}), 404
+        return jsonify({"error": "Social link not found"}), 404
 
-    if row[0] != user_id:
+    if row[0] != int(user_id):
         cur.close()
         conn.close()
         return jsonify({"error": "Unauthorized to delete this link"}), 403
- 
+
     cur.execute("DELETE FROM social_links WHERE id=%s", (link_id,))
     conn.commit()
     cur.close()
@@ -99,6 +99,9 @@ def update_social_link(link_id):
     username = data.get('username')
     profile_link = data.get('profile_link')
 
+    if not platform_name or not profile_link:
+        return jsonify({"error": "Platform name and profile link are required"}), 400
+
     # Normalize URL - add https:// if missing
     if profile_link and not profile_link.startswith(('http://', 'https://')):
         profile_link = 'https://' + profile_link
@@ -106,15 +109,15 @@ def update_social_link(link_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT user_id FROM users where id=%s",(user_id,))
+    cur.execute("SELECT user_id FROM social_links WHERE id=%s", (link_id,))
     row = cur.fetchone()
 
     if not row:
         cur.close()
         conn.close()
-        return jsonify({"message: User does not exists"}), 404
+        return jsonify({"error": "Social link not found"}), 404
 
-    if row[0] != user_id:
+    if row[0] != int(user_id):
         cur.close()
         conn.close()
         return jsonify({"error": "Unauthorized to update this link"}), 403

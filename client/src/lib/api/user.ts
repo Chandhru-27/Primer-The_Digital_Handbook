@@ -91,17 +91,25 @@ export const getSocialLinks = async (): Promise<SocialLink[]> => {
   }
 };
 
-export const addSocialLink = async (platformName: string, username: string, profileLink: string) => {
+export const addSocialLink = async (
+  platformName: string,
+  username: string,
+  profileLink: string
+) => {
   try {
     // Normalize URL - add https:// if missing
-    if (profileLink && !profileLink.startsWith('http://') && !profileLink.startsWith('https://')) {
-      profileLink = 'https://' + profileLink;
+    if (
+      profileLink &&
+      !profileLink.startsWith("http://") &&
+      !profileLink.startsWith("https://")
+    ) {
+      profileLink = "https://" + profileLink;
     }
 
     const response = await api.post("/social/add", {
       platform_name: platformName,
       username: username,
-      profile_link: profileLink
+      profile_link: profileLink,
     });
     return response.data;
   } catch (error) {
@@ -109,17 +117,26 @@ export const addSocialLink = async (platformName: string, username: string, prof
   }
 };
 
-export const updateSocialLink = async (linkId: number, platformName: string, username: string, profileLink: string) => {
+export const updateSocialLink = async (
+  linkId: number,
+  platformName: string,
+  username: string,
+  profileLink: string
+) => {
   try {
     // Normalize URL - add https:// if missing
-    if (profileLink && !profileLink.startsWith('http://') && !profileLink.startsWith('https://')) {
-      profileLink = 'https://' + profileLink;
+    if (
+      profileLink &&
+      !profileLink.startsWith("http://") &&
+      !profileLink.startsWith("https://")
+    ) {
+      profileLink = "https://" + profileLink;
     }
 
     const response = await api.post(`/social/update/${linkId}`, {
       platform_name: platformName,
       username: username,
-      profile_link: profileLink
+      profile_link: profileLink,
     });
     return response.data;
   } catch (error) {
