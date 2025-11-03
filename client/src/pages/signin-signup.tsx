@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Eye, EyeOff, LogIn, UserPlus, Loader2 } from "lucide-react";
 import {
   Card,
@@ -13,11 +13,12 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useToast } from "../lib/hooks/use-toast";
-import { signup, signin } from "../lib/api/auth";
+import { signUp, signIn } from "../lib/api/auth";
 
 export default function SigninSignup() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [Location , setLocation] = useLocation();
   const { toast } = useToast();
 
   // Signin form state
@@ -38,7 +39,7 @@ export default function SigninSignup() {
     setIsLoading(true);
 
     try {
-      const response = await signin(signinForm.username, signinForm.password);
+      const response = await signIn(signinForm);
 
       if (response.error) {
         toast({
@@ -51,8 +52,9 @@ export default function SigninSignup() {
           title: "Welcome back!",
           description: response.message,
         });
-        // Handle successful signin (e.g., redirect to dashboard)
-        // For now, just show success message
+        // Trigger sidebar re-render by dispatching a custom event
+        window.dispatchEvent(new Event('auth-change'));
+        setLocation("/");
       }
     } catch (error) {
       toast({
@@ -70,7 +72,7 @@ export default function SigninSignup() {
     setIsLoading(true);
 
     try {
-      const response = await signup(signupForm.username, signupForm.email, signupForm.password);
+      const response = await signUp(signupForm);
 
       if (response.error) {
         toast({
@@ -83,8 +85,7 @@ export default function SigninSignup() {
           title: "Account created!",
           description: response.message,
         });
-        // Handle successful signup (e.g., redirect to signin or dashboard)
-        // For now, just show success message
+        setLocation("/auth");
       }
     } catch (error) {
       toast({
