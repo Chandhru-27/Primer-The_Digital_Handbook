@@ -31,29 +31,16 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "../lib/hooks/use-toast";
-
-// Mock profile data
-const mockProfile = {
-  id: 1,
-  name: "Chandhru Loganathan",
-  email: "chandhru@example.com",
-  phone: "+91 9876543210",
-  age: 21,
-  gender: "Male",
-  address: "Chennai, India",
-  biography:
-    "I am a passionate engineering student pursuing AI & Data Science. I love coding and building creative projects.",
-  hobbies: "Gaming, Coding, Reading, Traveling",
-  skills: "C, C++, Python, React, MySQL, WordPress",
-  goals: "Become a full-stack developer and a game developer.",
-  notes: "Always keep learning and stay consistent.",
-  profilePicture: "",
-};
+import { checkLoginStatus } from "@/lib/api/auth";
+import { getUserProfile, UserProfile, updateUserProfile, getHandbookInfo, updateHandbookField, HandbookEntry } from "@/lib/api/user";
 
 export default function Profile() {
   const [isEditingBasic, setIsEditingBasic] = useState(false);
   const [isEditingHandbook, setIsEditingHandbook] = useState(false);
   const { toast } = useToast();
+
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [basicInfo, setBasicInfo] = useState({
     name: "",
@@ -72,45 +59,137 @@ export default function Profile() {
     notes: "",
   });
 
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Simulate data loading (mock)
+  // Load user data from backend
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setBasicInfo({
-        name: mockProfile.name,
-        email: mockProfile.email,
-        phone: mockProfile.phone,
-        age: mockProfile.age.toString(),
-        gender: mockProfile.gender,
-        address: mockProfile.address,
-      });
-      setHandbookInfo({
-        biography: mockProfile.biography,
-        hobbies: mockProfile.hobbies,
-        skills: mockProfile.skills,
-        goals: mockProfile.goals,
-        notes: mockProfile.notes,
-      });
+    const loadUserData = async () => {
+      const isLoggedIn = await checkLoginStatus();
+      if (isLoggedIn) {
+        const userData = await getUserProfile();
+        setUser(userData);
+
+        // Populate form data from user profile
+        setBasicInfo({
+          name: userData.full_name || "",
+          email: userData.email || "",
+          phone: userData.phone || "",
+          age: userData.profession?.toString() || "", // profession field contains age
+          gender: userData.gender || "",
+          address: `${userData.city || ""}${
+            userData.city && userData.state ? ", " : ""
+          }${userData.state || ""}`,
+        });
+
+        // Load handbook data
+        const handbookData = await getHandbookInfo();
+        const handbookMap: { [key: string]: string } = {};
+        handbookData.forEach((entry: HandbookEntry) => {
+          handbookMap[entry.field_name] = entry.field_value;
+        });
+
+        setHandbookInfo({
+          biography: handbookMap.biography || "",
+          hobbies: handbookMap.hobbies || "",
+          skills: handbookMap.skills || "",
+          goals: handbookMap.goals || "",
+          notes: handbookMap.notes || "",
+        });
+      }
       setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    };
+
+    loadUserData();
   }, []);
 
-  const handleSaveBasic = () => {
-    toast({
-      title: "Profile updated",
-      description: "Your basic information has been saved successfully.",
-    });
-    setIsEditingBasic(false);
+  const handleSaveBasic = async () => {
+    try {
+      // Prepare data for API call - map form fields to API fields
+      const updateData: Partial<UserProfile> = {};
+
+      if (basicInfo.name) updateData.full_name = basicInfo.name;
+      if (basicInfo.email) updateData.email = basicInfo.email;
+      if (basicInfo.phone) updateData.phone = basicInfo.phone;
+      if (basicInfo.age) updateData.age = parseInt(basicInfo.age);
+      // Always send gender, even if empty string, to avoid null issues
+      updateData.gender = basicInfo.gender || null;
+
+      // Handle address - split into city and state if present
+      if (basicInfo.address) {
+        const addressParts = basicInfo.address.split(',').map(part => part.trim());
+        if (addressParts.length >= 2) {
+          updateData.city = addressParts[0];
+          updateData.state = addressParts[1];
+        } else {
+          updateData.city = addressParts[0];
+        }
+      }
+
+      // Only call API if there's data to update
+      if (Object.keys(updateData).length > 0) {
+        const response = await updateUserProfile(updateData as UserProfile);
+        if (response) {
+          toast({
+            title: "Profile updated",
+            description: "Your basic information has been saved successfully.",
+          });
+          const updatedUser = await getUserProfile();
+          setUser(updatedUser);
+        }
+      }
+
+      setIsEditingBasic(false);
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleSaveHandbook = () => {
-    toast({
-      title: "Handbook updated",
-      description: "Your personal handbook has been saved successfully.",
-    });
-    setIsEditingHandbook(false);
+  const handleSaveHandbook = async () => {
+    try {
+      // Update each handbook field that has content
+      const updatePromises = [];
+
+      if (handbookInfo.biography) {
+        updatePromises.push(updateHandbookField('biography', handbookInfo.biography));
+      }
+      if (handbookInfo.hobbies) {
+        updatePromises.push(updateHandbookField('hobbies', handbookInfo.hobbies));
+      }
+      if (handbookInfo.skills) {
+        updatePromises.push(updateHandbookField('skills', handbookInfo.skills));
+      }
+      if (handbookInfo.goals) {
+        updatePromises.push(updateHandbookField('goals', handbookInfo.goals));
+      }
+      if (handbookInfo.notes) {
+        updatePromises.push(updateHandbookField('notes', handbookInfo.notes));
+      }
+
+      // Wait for all updates to complete
+      if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
+        toast({
+          title: "Handbook updated",
+          description: "Your personal handbook has been saved successfully.",
+        });
+      } else {
+        toast({
+          title: "No changes",
+          description: "Please add some content to your handbook fields.",
+          variant: "destructive",
+        });
+      }
+
+      setIsEditingHandbook(false);
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "Failed to update handbook. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -135,11 +214,11 @@ export default function Profile() {
         <div className="mb-8 flex justify-center">
           <div className="relative group">
             <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl">
-              <AvatarImage src={mockProfile.profilePicture || ""} alt={basicInfo.name} />
+              <AvatarImage src={user?.profile_pic || ""} alt={user?.username} />
               <AvatarFallback className="bg-primary text-primary-foreground text-4xl font-bold">
-                {basicInfo.name
+                {(user?.full_name || user?.username || "U")
                   .split(" ")
-                  .map((n) => n[0])
+                  .map((n: string) => n[0])
                   .join("")}
               </AvatarFallback>
             </Avatar>
@@ -162,7 +241,9 @@ export default function Profile() {
                   <User className="h-5 w-5" />
                   Basic Information
                 </CardTitle>
-                <CardDescription>Your essential personal details</CardDescription>
+                <CardDescription>
+                  Your essential personal details
+                </CardDescription>
               </div>
               {!isEditingBasic && (
                 <Button
@@ -194,7 +275,13 @@ export default function Profile() {
                     }
                   />
                 ) : (
-                  <p className="text-foreground py-2">{basicInfo.name}</p>
+                  <p className="text-foreground py-2">
+                    {basicInfo.name || (
+                      <span className="text-muted-foreground italic">
+                        No data yet - configure soon
+                      </span>
+                    )}
+                  </p>
                 )}
               </div>
 
@@ -214,7 +301,13 @@ export default function Profile() {
                     }
                   />
                 ) : (
-                  <p className="text-foreground py-2">{basicInfo.email}</p>
+                  <p className="text-foreground py-2">
+                    {basicInfo.email || (
+                      <span className="text-muted-foreground italic">
+                        No data yet - configure soon
+                      </span>
+                    )}
+                  </p>
                 )}
               </div>
 
@@ -233,7 +326,13 @@ export default function Profile() {
                     }
                   />
                 ) : (
-                  <p className="text-foreground py-2">{basicInfo.phone}</p>
+                  <p className="text-foreground py-2">
+                    {basicInfo.phone || (
+                      <span className="text-muted-foreground italic">
+                        No data yet - configure soon
+                      </span>
+                    )}
+                  </p>
                 )}
               </div>
 
@@ -253,7 +352,13 @@ export default function Profile() {
                     }
                   />
                 ) : (
-                  <p className="text-foreground py-2">{basicInfo.age}</p>
+                  <p className="text-foreground py-2">
+                    {basicInfo.age || (
+                      <span className="text-muted-foreground italic">
+                        No data yet - configure soon
+                      </span>
+                    )}
+                  </p>
                 )}
               </div>
 
@@ -283,7 +388,13 @@ export default function Profile() {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-foreground py-2">{basicInfo.gender}</p>
+                  <p className="text-foreground py-2">
+                    {basicInfo.gender || (
+                      <span className="text-muted-foreground italic">
+                        No data yet - configure soon
+                      </span>
+                    )}
+                  </p>
                 )}
               </div>
 
@@ -302,7 +413,13 @@ export default function Profile() {
                     }
                   />
                 ) : (
-                  <p className="text-foreground py-2">{basicInfo.address}</p>
+                  <p className="text-foreground py-2">
+                    {basicInfo.address || (
+                      <span className="text-muted-foreground italic">
+                        No data yet - configure soon
+                      </span>
+                    )}
+                  </p>
                 )}
               </div>
             </div>
@@ -310,7 +427,10 @@ export default function Profile() {
             {/* Save & Cancel Buttons */}
             {isEditingBasic && (
               <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-                <Button variant="outline" onClick={() => setIsEditingBasic(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditingBasic(false)}
+                >
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
@@ -355,13 +475,20 @@ export default function Profile() {
                   id="biography"
                   value={handbookInfo.biography}
                   onChange={(e) =>
-                    setHandbookInfo({ ...handbookInfo, biography: e.target.value })
+                    setHandbookInfo({
+                      ...handbookInfo,
+                      biography: e.target.value,
+                    })
                   }
                   rows={4}
                 />
               ) : (
-                <p className="text-foreground leading-relaxed">
-                  {handbookInfo.biography}
+                <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+                  {handbookInfo.biography || (
+                    <span className="text-muted-foreground italic">
+                      No data yet - configure soon
+                    </span>
+                  )}
                 </p>
               )}
             </div>
@@ -374,12 +501,21 @@ export default function Profile() {
                   id="hobbies"
                   value={handbookInfo.hobbies}
                   onChange={(e) =>
-                    setHandbookInfo({ ...handbookInfo, hobbies: e.target.value })
+                    setHandbookInfo({
+                      ...handbookInfo,
+                      hobbies: e.target.value,
+                    })
                   }
                   rows={3}
                 />
               ) : (
-                <p className="text-foreground">{handbookInfo.hobbies}</p>
+                <p className="text-foreground whitespace-pre-wrap">
+                  {handbookInfo.hobbies || (
+                    <span className="text-muted-foreground italic">
+                      No data yet - configure soon
+                    </span>
+                  )}
+                </p>
               )}
             </div>
 
@@ -396,7 +532,13 @@ export default function Profile() {
                   rows={3}
                 />
               ) : (
-                <p className="text-foreground">{handbookInfo.skills}</p>
+                <p className="text-foreground whitespace-pre-wrap">
+                  {handbookInfo.skills || (
+                    <span className="text-muted-foreground italic">
+                      No data yet - configure soon
+                    </span>
+                  )}
+                </p>
               )}
             </div>
 
@@ -413,7 +555,13 @@ export default function Profile() {
                   rows={3}
                 />
               ) : (
-                <p className="text-foreground">{handbookInfo.goals}</p>
+                <p className="text-foreground whitespace-pre-wrap">
+                  {handbookInfo.goals || (
+                    <span className="text-muted-foreground italic">
+                      No data yet - configure soon
+                    </span>
+                  )}
+                </p>
               )}
             </div>
 
@@ -430,14 +578,23 @@ export default function Profile() {
                   rows={3}
                 />
               ) : (
-                <p className="text-foreground">{handbookInfo.notes}</p>
+                <p className="text-foreground whitespace-pre-wrap">
+                  {handbookInfo.notes || (
+                    <span className="text-muted-foreground italic">
+                      No data yet - configure soon
+                    </span>
+                  )}
+                </p>
               )}
             </div>
 
             {/* Save & Cancel Buttons */}
             {isEditingHandbook && (
               <div className="flex justify-end gap-3 pt-6 border-t">
-                <Button variant="outline" onClick={() => setIsEditingHandbook(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditingHandbook(false)}
+                >
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>

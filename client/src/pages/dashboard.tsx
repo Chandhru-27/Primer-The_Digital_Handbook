@@ -10,13 +10,8 @@ import {
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Badge } from "../components/ui/badge";
-
-interface UserProfile {
-  name: string;
-  profileImage?: string;
-  biography?: string;
-}
+import { UserProfile, getUserProfile } from "../lib/api/user";
+import { checkLoginStatus } from "../lib/api/auth";
 
 interface SocialLink {
   platform: string;
@@ -30,11 +25,7 @@ interface Credential {
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<UserProfile>({
-    name: "John Doe",
-    biography: "Software Engineer passionate about clean UI and privacy.",
-    profileImage: "",
-  });
+  const [user, setUser] = useState<UserProfile | null>(null);
 
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([
     { platform: "GitHub", url: "https://github.com/johndoe" },
@@ -47,15 +38,22 @@ export default function Dashboard() {
   ]);
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
+    const loadUserData = async () => {
+      const isLoggedIn = await checkLoginStatus();
+      if (isLoggedIn) {
+        const userData = await getUserProfile();
+        setUser(userData);
+      }
+      setIsLoading(false);
+    };
+
+    loadUserData();
   }, []);
 
-  const userName = user.name || "User";
+  const userName = user?.full_name || user?.username || "User";
   const userInitials = userName
     .split(" ")
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join("");
 
   const quickActions = [
@@ -65,7 +63,7 @@ export default function Dashboard() {
       icon: User,
       href: "/profile",
       color: "bg-primary/10 text-primary",
-      stats: user.biography ? "Profile complete" : "Complete your profile",
+      stats: user?.full_name ? "Profile complete" : "Complete your profile",
     },
     {
       title: "Social Links",
@@ -105,7 +103,7 @@ export default function Dashboard() {
           <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-primary/20 via-primary/10 to-transparent backdrop-blur-sm border border-primary/20 p-8 md:p-12">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               <Avatar className="h-24 w-24 ring-4 ring-background shadow-lg">
-                <AvatarImage src={user.profileImage || ""} alt={userName} />
+                <AvatarImage src={user?.profile_pic || ""} alt={userName} />
                 <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
                   {userInitials}
                 </AvatarFallback>
