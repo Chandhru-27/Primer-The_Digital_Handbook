@@ -1,4 +1,12 @@
-import { Home, User, Link2, Shield, ChevronRight, LogIn, LogOut } from "lucide-react";
+import {
+  Home,
+  User,
+  Link2,
+  Shield,
+  ChevronRight,
+  LogIn,
+  LogOut,
+} from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -16,7 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import { ThemeToggle } from "../components/theme-toggle";
 import { UserProfile, getUserProfile } from "../lib/api/user";
-import { logout } from "../lib/api/auth";
+import { checkLoginStatus, logout } from "../lib/api/auth";
 import { useEffect, useState } from "react";
 import { useToast } from "../lib/hooks/use-toast";
 
@@ -45,30 +53,49 @@ export function AppSidebar() {
   ];
 
   const [user, setUser] = useState<UserProfile>();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [location] = useLocation();
+  const [loggedIn, setLoggedIn] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    const authToken = localStorage.getItem('authToken');
-    const userId = localStorage.getItem('userId');
+    const checkAuth = async () => {
+      const isLoggedIn = await checkLoginStatus();
+      setLoggedIn(isLoggedIn);
 
-    if (authToken && userId) {
-      setIsAuthenticated(true);
-      getUserProfile(parseInt(userId)).then((data) => {
-        if ('userName' in data) {
-          setUser(data);
-        }
-      });
-    } else {
-      setIsAuthenticated(false);
-    }
+      if (isLoggedIn) {
+        const userData = await getUserProfile();
+        setUser(userData);
+        console.log(userData);
+      } else {
+        setUser(undefined);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for storage changes (in case login happens in another tab)
+    const handleStorageChange = () => {
+      checkAuth();
+    };
+
+    // Listen for auth changes (login/logout events)
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('auth-change', handleAuthChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('auth-change', handleAuthChange);
+    };
   }, []);
 
-  const userName = user?.userName || "Username";
+  const userName = user?.username || "Username";
   const userInitials = userName
     .split(" ")
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join("");
 
   return (
@@ -76,7 +103,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border p-6">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 ring-2 ring-sidebar-border">
-            <AvatarImage src={user?.profileImage || ""} alt={userName} />
+            <AvatarImage src={user?.profile_pic || ""} alt={userName} />
             <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
               {userInitials}
             </AvatarFallback>
@@ -122,14 +149,16 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {isAuthenticated ? (
+            {loggedIn ? (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   logout();
-                  setIsAuthenticated(false);
                   setUser(undefined);
+                  setLoggedIn(false);
+                  // Trigger sidebar re-render by dispatching a custom event
+                  window.dispatchEvent(new Event('auth-change'));
                   toast({
                     title: "Logged out",
                     description: "You have been successfully logged out.",
@@ -142,7 +171,11 @@ export function AppSidebar() {
               </Button>
             ) : (
               <Link href="/auth">
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
+                >
                   <LogIn className="h-4 w-4 mr-2" />
                   Sign In
                 </Button>
