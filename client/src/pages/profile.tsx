@@ -32,7 +32,14 @@ import {
 } from "lucide-react";
 import { useToast } from "../lib/hooks/use-toast";
 import { checkLoginStatus } from "@/lib/api/auth";
-import { getUserProfile, UserProfile, updateUserProfile, getHandbookInfo, updateHandbookField, HandbookEntry } from "@/lib/api/user";
+import {
+  getUserProfile,
+  UserProfile,
+  updateUserProfile,
+  getHandbookInfo,
+  updateHandbookField,
+  HandbookEntry,
+} from "@/lib/api/user";
 
 export default function Profile() {
   const [isEditingBasic, setIsEditingBasic] = useState(false);
@@ -114,7 +121,9 @@ export default function Profile() {
 
       // Handle address - split into city and state if present
       if (basicInfo.address) {
-        const addressParts = basicInfo.address.split(',').map(part => part.trim());
+        const addressParts = basicInfo.address
+          .split(",")
+          .map((part) => part.trim());
         if (addressParts.length >= 2) {
           updateData.city = addressParts[0];
           updateData.state = addressParts[1];
@@ -152,19 +161,23 @@ export default function Profile() {
       const updatePromises = [];
 
       if (handbookInfo.biography) {
-        updatePromises.push(updateHandbookField('biography', handbookInfo.biography));
+        updatePromises.push(
+          updateHandbookField("biography", handbookInfo.biography)
+        );
       }
       if (handbookInfo.hobbies) {
-        updatePromises.push(updateHandbookField('hobbies', handbookInfo.hobbies));
+        updatePromises.push(
+          updateHandbookField("hobbies", handbookInfo.hobbies)
+        );
       }
       if (handbookInfo.skills) {
-        updatePromises.push(updateHandbookField('skills', handbookInfo.skills));
+        updatePromises.push(updateHandbookField("skills", handbookInfo.skills));
       }
       if (handbookInfo.goals) {
-        updatePromises.push(updateHandbookField('goals', handbookInfo.goals));
+        updatePromises.push(updateHandbookField("goals", handbookInfo.goals));
       }
       if (handbookInfo.notes) {
-        updatePromises.push(updateHandbookField('notes', handbookInfo.notes));
+        updatePromises.push(updateHandbookField("notes", handbookInfo.notes));
       }
 
       // Wait for all updates to complete

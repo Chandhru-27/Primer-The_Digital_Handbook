@@ -43,7 +43,13 @@ import {
   SiYoutube,
 } from "react-icons/si";
 import { useToast } from "../lib/hooks/use-toast";
-import { getSocialLinks, addSocialLink, updateSocialLink, deleteSocialLink, SocialLink } from "../lib/api/user";
+import {
+  getSocialLinks,
+  addSocialLink,
+  updateSocialLink,
+  deleteSocialLink,
+  SocialLink,
+} from "../lib/api/user";
 
 const platformIcons: Record<
   string,
@@ -97,7 +103,11 @@ export default function SocialLinks() {
 
     try {
       setLoading(true);
-      const response = await addSocialLink(formData.platform, formData.username, formData.url);
+      const response = await addSocialLink(
+        formData.platform,
+        formData.username,
+        formData.url
+      );
 
       if (response) {
         const updatedLinks = await getSocialLinks();
@@ -134,7 +144,12 @@ export default function SocialLinks() {
   const handleUpdate = async (id: number) => {
     try {
       setLoading(true);
-      const response = await updateSocialLink(id, formData.platform, formData.username, formData.url);
+      const response = await updateSocialLink(
+        id,
+        formData.platform,
+        formData.username,
+        formData.url
+      );
 
       if (response) {
         // Reload social links to get updated data
@@ -269,7 +284,10 @@ export default function SocialLinks() {
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddDialogOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button onClick={handleAdd}>Add Link</Button>
@@ -284,7 +302,9 @@ export default function SocialLinks() {
               <div className="p-4 rounded-full bg-muted mb-4">
                 <Plus className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No social links yet</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                No social links yet
+              </h3>
               <p className="text-muted-foreground text-center mb-6">
                 Add your first social media profile to get started
               </p>
@@ -310,7 +330,9 @@ export default function SocialLinks() {
                       <div className="p-3 rounded-lg bg-muted">
                         {IconComponent && (
                           <IconComponent
-                            className={`h-8 w-8 ${platformIcons[link.platform_name]?.color}`}
+                            className={`h-8 w-8 ${
+                              platformIcons[link.platform_name]?.color
+                            }`}
                           />
                         )}
                       </div>
@@ -326,7 +348,9 @@ export default function SocialLinks() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(link.id, link.platform_name)}
+                            onClick={() =>
+                              handleDelete(link.id, link.platform_name)
+                            }
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -340,7 +364,10 @@ export default function SocialLinks() {
                           placeholder="Username"
                           value={formData.username}
                           onChange={(e) =>
-                            setFormData({ ...formData, username: e.target.value })
+                            setFormData({
+                              ...formData,
+                              username: e.target.value,
+                            })
                           }
                         />
                         <Input
@@ -353,7 +380,9 @@ export default function SocialLinks() {
                       </div>
                     ) : (
                       <>
-                        <CardTitle className="text-lg">{link.platform_name}</CardTitle>
+                        <CardTitle className="text-lg">
+                          {link.platform_name}
+                        </CardTitle>
                         <CardDescription className="flex items-center gap-2">
                           {link.username || link.platform_name}
                         </CardDescription>

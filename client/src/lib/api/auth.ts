@@ -38,7 +38,7 @@ export const signIn = async (formData: SignInFormData) => {
 
 export const checkLoginStatus = async () => {
   try {
-    const response = await api.get("/auth/me")
+    const response = await api.get("/auth/me");
     return response.data.logged_in;
   } catch {
     return false;
