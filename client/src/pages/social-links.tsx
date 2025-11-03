@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -43,13 +43,7 @@ import {
   SiYoutube,
 } from "react-icons/si";
 import { useToast } from "../lib/hooks/use-toast";
-
-type SocialLink = {
-  id: string;
-  platform: string;
-  username: string;
-  url: string;
-};
+import { getSocialLinks, addSocialLink, updateSocialLink, deleteSocialLink, SocialLink } from "../lib/api/user";
 
 const platformIcons: Record<
   string,
@@ -68,15 +62,30 @@ export default function SocialLinks() {
 
   const [links, setLinks] = useState<SocialLink[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     platform: "",
     username: "",
     url: "",
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleAdd = () => {
+  useEffect(() => {
+    const loadSocialLinks = async () => {
+      try {
+        const socialLinks = await getSocialLinks();
+        setLinks(socialLinks);
+      } catch (error) {
+        console.error("Failed to load social links:", error);
+      }
+
+      setLoading(false);
+    };
+
+    loadSocialLinks();
+  }, []);
+
+  const handleAdd = async () => {
     if (!formData.platform || !formData.username || !formData.url) {
       toast({
         title: "Error",
@@ -86,61 +95,106 @@ export default function SocialLinks() {
       return;
     }
 
-    const newLink: SocialLink = {
-      id: Date.now().toString(),
-      platform: formData.platform,
-      username: formData.username,
-      url: formData.url,
-    };
+    try {
+      setLoading(true);
+      const response = await addSocialLink(formData.platform, formData.username, formData.url);
 
-    setLinks((prev) => [...prev, newLink]);
-    setFormData({ platform: "", username: "", url: "" });
-    setIsAddDialogOpen(false);
+      if (response) {
+        const updatedLinks = await getSocialLinks();
+        setLinks(updatedLinks);
 
-    toast({
-      title: "Link added",
-      description: `Your ${newLink.platform} profile has been added successfully.`,
-    });
+        setFormData({ platform: "", username: "", url: "" });
+        setIsAddDialogOpen(false);
+
+        toast({
+          title: "Link added",
+          description: `Your ${formData.platform} profile has been added successfully.`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add social link. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (link: SocialLink) => {
     setEditingId(link.id);
     setFormData({
-      platform: link.platform,
-      username: link.username,
-      url: link.url,
+      platform: link.platform_name,
+      username: link.username || "",
+      url: link.profile_link,
     });
   };
 
-  const handleUpdate = (id: string) => {
-    setLoading(true);
-    setTimeout(() => {
-      setLinks((prev) =>
-        prev.map((l) => (l.id === id ? { ...l, ...formData } : l))
-      );
-      setEditingId(null);
-      setFormData({ platform: "", username: "", url: "" });
-      setLoading(false);
+  const handleUpdate = async (id: number) => {
+    try {
+      setLoading(true);
+      const response = await updateSocialLink(id, formData.platform, formData.username, formData.url);
 
+      if (response) {
+        // Reload social links to get updated data
+        const updatedLinks = await getSocialLinks();
+        setLinks(updatedLinks);
+
+        setEditingId(null);
+        setFormData({ platform: "", username: "", url: "" });
+
+        toast({
+          title: "Link updated",
+          description: "Your social link has been updated successfully.",
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Link updated",
-        description: "Your social link has been updated successfully.",
+        title: "Error",
+        description: "Failed to update social link. Please try again.",
+        variant: "destructive",
       });
-    }, 500);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id: string, platform: string) => {
-    setLinks((prev) => prev.filter((l) => l.id !== id));
-    toast({
-      title: "Link removed",
-      description: `Your ${platform} profile has been removed successfully.`,
-    });
+  const handleDelete = async (id: number, platform: string) => {
+    try {
+      const response = await deleteSocialLink(id);
+
+      if (response) {
+        // Reload social links to reflect the deletion
+        const updatedLinks = await getSocialLinks();
+        setLinks(updatedLinks);
+
+        toast({
+          title: "Link removed",
+          description: `Your ${platform} profile has been removed successfully.`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete social link. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancel = () => {
     setEditingId(null);
     setFormData({ platform: "", username: "", url: "" });
   };
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-auto">
@@ -243,7 +297,7 @@ export default function SocialLinks() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {links.map((link) => {
-              const IconComponent = platformIcons[link.platform]?.icon;
+              const IconComponent = platformIcons[link.platform_name]?.icon;
               const isEditing = editingId === link.id;
 
               return (
@@ -256,7 +310,7 @@ export default function SocialLinks() {
                       <div className="p-3 rounded-lg bg-muted">
                         {IconComponent && (
                           <IconComponent
-                            className={`h-8 w-8 ${platformIcons[link.platform]?.color}`}
+                            className={`h-8 w-8 ${platformIcons[link.platform_name]?.color}`}
                           />
                         )}
                       </div>
@@ -272,7 +326,7 @@ export default function SocialLinks() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(link.id, link.platform)}
+                            onClick={() => handleDelete(link.id, link.platform_name)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -299,9 +353,9 @@ export default function SocialLinks() {
                       </div>
                     ) : (
                       <>
-                        <CardTitle className="text-lg">{link.platform}</CardTitle>
+                        <CardTitle className="text-lg">{link.platform_name}</CardTitle>
                         <CardDescription className="flex items-center gap-2">
-                          {link.username}
+                          {link.username || link.platform_name}
                         </CardDescription>
                       </>
                     )}
@@ -336,7 +390,7 @@ export default function SocialLinks() {
                     ) : (
                       <Button variant="outline" className="w-full" asChild>
                         <a
-                          href={link.url}
+                          href={link.profile_link}
                           target="_blank"
                           rel="noopener noreferrer"
                         >

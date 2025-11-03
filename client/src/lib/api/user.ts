@@ -31,6 +31,13 @@ export interface HandbookData {
   notes?: string;
 }
 
+export interface SocialLink {
+  id: number;
+  platform_name: string;
+  username?: string;
+  profile_link: string;
+}
+
 export const getUserProfile = async () => {
   try {
     const response = await api.get("/personal/me");
@@ -68,6 +75,61 @@ export const updateHandbookField = async (
       field_name: fieldName,
       field_value: fieldValue,
     });
+    return response.data;
+  } catch (error) {
+    handleAxiosError(error);
+  }
+};
+
+export const getSocialLinks = async (): Promise<SocialLink[]> => {
+  try {
+    const response = await api.get("/social/get-social");
+    return response.data;
+  } catch (error) {
+    handleAxiosError(error);
+    return [];
+  }
+};
+
+export const addSocialLink = async (platformName: string, username: string, profileLink: string) => {
+  try {
+    // Normalize URL - add https:// if missing
+    if (profileLink && !profileLink.startsWith('http://') && !profileLink.startsWith('https://')) {
+      profileLink = 'https://' + profileLink;
+    }
+
+    const response = await api.post("/social/add", {
+      platform_name: platformName,
+      username: username,
+      profile_link: profileLink
+    });
+    return response.data;
+  } catch (error) {
+    handleAxiosError(error);
+  }
+};
+
+export const updateSocialLink = async (linkId: number, platformName: string, username: string, profileLink: string) => {
+  try {
+    // Normalize URL - add https:// if missing
+    if (profileLink && !profileLink.startsWith('http://') && !profileLink.startsWith('https://')) {
+      profileLink = 'https://' + profileLink;
+    }
+
+    const response = await api.post(`/social/update/${linkId}`, {
+      platform_name: platformName,
+      username: username,
+      profile_link: profileLink
+    });
+    return response.data;
+  } catch (error) {
+    handleAxiosError(error);
+  }
+};
+
+export const deleteSocialLink = async (linkId: number) => {
+  try {
+    const response = await api.delete(`/social/delete/${linkId}`);
     return response.data;
   } catch (error) {
     handleAxiosError(error);
