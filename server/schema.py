@@ -56,6 +56,7 @@ CREATE_TABLE_SOCIAL_LINKS = """
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         platform_name VARCHAR(100),
+        username VARCHAR(100),
         profile_link VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
