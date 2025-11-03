@@ -14,11 +14,11 @@ def create_app():
 
     # cookie configuration
     app.config['JWT_TOKEN_LOCATION'] = ['cookies']
-    app.config['JWT_COOKIE_SECURE'] = True 
-    app.config['JWT_COOKIE_CSRF_PROTECT'] = True  
-    app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
+    app.config['JWT_COOKIE_SECURE'] = False 
+    app.config['JWT_COOKIE_CSRF_PROTECT'] = False  
+    app.config["JWT_COOKIE_SAMESITE"] = "Lax"
     app.config['JWT_ACCESS_COOKIE_PATH'] = '/'
-    app.config['JWT_REFRESH_COOKIE_PATH'] = '/auth/refresh'
+    app.config['JWT_REFRESH_COOKIE_PATH'] = '/'
 
     # Expiration times from .env
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 1600))
@@ -29,12 +29,16 @@ def create_app():
     # CORS config for endpoint access
     CORS(
         app,
-        resources={r"/*": {"origins": ["http://localhost:5173", "https://yourfrontend.com"]}},
-        supports_credentials=True, 
-        allow_headers=["Content-Type", "Authorization"],
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+         resources={r"/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}},
+        origins=["http://localhost:5173"],
+        supports_credentials=True,  
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With"  
+        ],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     )
-
     # Import and register blueprints (avoids circular imports)
     from auth.routes import auth_bp
     from personal_info.routes import personal_bp
@@ -74,5 +78,5 @@ def home():
 
 if __name__ == "__main__":
     initialize_database_and_create_tables()
-    app.run(debug=True)
+    app.run(debug=True, host="localhost", port=5000)
 
