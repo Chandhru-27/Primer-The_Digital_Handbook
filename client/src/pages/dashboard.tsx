@@ -10,10 +10,10 @@ import {
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { UserProfile, getUserProfile } from "../lib/api/user";
+import { UserProfile, getSocialLinks, getUserProfile } from "../lib/api/user";
 import { checkLoginStatus } from "../lib/api/auth";
 
-interface SocialLink {
+interface LocalSocialLink {
   platform: string;
   url: string;
 }
@@ -27,10 +27,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
 
-  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([
-    { platform: "GitHub", url: "https://github.com/johndoe" },
-    { platform: "LinkedIn", url: "https://linkedin.com/in/johndoe" },
-  ]);
+  const [socialLinks, setSocialLinks] = useState<LocalSocialLink[]>([]);
 
   const [credentials, setCredentials] = useState<Credential[]>([
     { name: "Google", username: "john.doe@gmail.com" },
@@ -42,7 +39,13 @@ export default function Dashboard() {
       const isLoggedIn = await checkLoginStatus();
       if (isLoggedIn) {
         const userData = await getUserProfile();
+        const socialLinksData = await getSocialLinks();
         setUser(userData);
+        const transformedLinks = socialLinksData.map(link => ({
+          platform: link.platform_name,
+          url: link.profile_link
+        }));
+        setSocialLinks(transformedLinks);
       }
       setIsLoading(false);
     };
