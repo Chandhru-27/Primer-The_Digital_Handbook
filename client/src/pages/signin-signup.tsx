@@ -11,14 +11,20 @@ import {
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../components/ui/tabs";
 import { useToast } from "../lib/hooks/use-toast";
 import { signUp, signIn } from "../lib/api/auth";
+import { setVaultPassword } from "../lib/api/auth";
 
 export default function SigninSignup() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [Location , setLocation] = useLocation();
+  const [Location, setLocation] = useLocation();
   const { toast } = useToast();
 
   // Signin form state
@@ -32,6 +38,8 @@ export default function SigninSignup() {
     username: "",
     email: "",
     password: "",
+    vaultPin: "",
+    confirmVaultPin: "",
   });
 
   const handleSignin = async (e: React.FormEvent) => {
@@ -53,7 +61,7 @@ export default function SigninSignup() {
           description: response.message,
         });
         // Trigger sidebar re-render by dispatching a custom event
-        window.dispatchEvent(new Event('auth-change'));
+        window.dispatchEvent(new Event("auth-change"));
         setLocation("/");
       }
     } catch (error) {
@@ -69,23 +77,80 @@ export default function SigninSignup() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate vault PINs match
+    if (signupForm.vaultPin !== signupForm.confirmVaultPin) {
+      toast({
+        title: "Validation Error",
+        description: "Vault PINs do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (signupForm.vaultPin.length < 4) {
+      toast({
+        title: "Validation Error",
+        description: "Vault PIN must be at least 4 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await signUp(signupForm);
+      const signupData = {
+        username: signupForm.username,
+        email: signupForm.email,
+        password: signupForm.password,
+      };
 
-      if (response.error) {
+      const signupResponse = await signUp(signupData);
+
+      if (signupResponse.error) {
         toast({
           title: "Sign up failed",
-          description: response.error,
+          description: signupResponse.error,
           variant: "destructive",
         });
-      } else {
+        return;
+      }
+
+      // Automatically sign in after successful signup
+      const signinResponse = await signIn({
+        username: signupForm.username,
+        password: signupForm.password,
+      });
+
+      if (signinResponse.error) {
+        toast({
+          title: "Account created but signin failed",
+          description: "Please try signing in manually",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Now that we're signed in, set the vault password
+      try {
+        await setVaultPassword(signupForm.vaultPin);
         toast({
           title: "Account created!",
-          description: response.message,
+          description: "Your account and vault have been set up successfully.",
         });
-        setLocation("/auth");
+        // Trigger sidebar re-render
+        window.dispatchEvent(new Event("auth-change"));
+        setLocation("/");
+      } catch (vaultError) {
+        console.error("Vault setup error:", vaultError);
+        toast({
+          title: "Account created with warning",
+          description:
+            "Account created but vault setup failed. Please try setting your vault password again.",
+          variant: "destructive",
+        });
+        setLocation("/vault");
       }
     } catch (error) {
       toast({
@@ -93,14 +158,15 @@ export default function SigninSignup() {
         description: "An unexpected error occurred",
         variant: "destructive",
       });
+      setLocation("/auth");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-4">
-      <div className="w-full max-w-md">
+    <div className="max-h-screen flex justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-4 overflow-y-auto">
+      <div className="w-full max-w-md max-h-screen">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">Primer</h1>
           <p className="text-muted-foreground">Your personal handbook</p>
@@ -136,7 +202,10 @@ export default function SigninSignup() {
                       placeholder="Enter your username"
                       value={signinForm.username}
                       onChange={(e) =>
-                        setSigninForm({ ...signinForm, username: e.target.value })
+                        setSigninForm({
+                          ...signinForm,
+                          username: e.target.value,
+                        })
                       }
                       required
                     />
@@ -151,7 +220,10 @@ export default function SigninSignup() {
                         placeholder="Enter your password"
                         value={signinForm.password}
                         onChange={(e) =>
-                          setSigninForm({ ...signinForm, password: e.target.value })
+                          setSigninForm({
+                            ...signinForm,
+                            password: e.target.value,
+                          })
                         }
                         required
                       />
@@ -207,7 +279,10 @@ export default function SigninSignup() {
                       placeholder="Choose a username"
                       value={signupForm.username}
                       onChange={(e) =>
-                        setSignupForm({ ...signupForm, username: e.target.value })
+                        setSignupForm({
+                          ...signupForm,
+                          username: e.target.value,
+                        })
                       }
                       required
                     />
@@ -236,7 +311,10 @@ export default function SigninSignup() {
                         placeholder="Create a password"
                         value={signupForm.password}
                         onChange={(e) =>
-                          setSignupForm({ ...signupForm, password: e.target.value })
+                          setSignupForm({
+                            ...signupForm,
+                            password: e.target.value,
+                          })
                         }
                         required
                       />
@@ -254,6 +332,44 @@ export default function SigninSignup() {
                         )}
                       </Button>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-vault-pin">Vault PIN</Label>
+                    <Input
+                      id="signup-vault-pin"
+                      type="password"
+                      placeholder="Create a vault PIN (min 4 characters)"
+                      value={signupForm.vaultPin}
+                      onChange={(e) =>
+                        setSignupForm({
+                          ...signupForm,
+                          vaultPin: e.target.value,
+                        })
+                      }
+                      required
+                      minLength={4}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-confirm-vault-pin">
+                      Confirm Vault PIN
+                    </Label>
+                    <Input
+                      id="signup-confirm-vault-pin"
+                      type="password"
+                      placeholder="Confirm your vault PIN"
+                      value={signupForm.confirmVaultPin}
+                      onChange={(e) =>
+                        setSignupForm({
+                          ...signupForm,
+                          confirmVaultPin: e.target.value,
+                        })
+                      }
+                      required
+                      minLength={4}
+                    />
                   </div>
 
                   <Button type="submit" className="w-full" disabled={isLoading}>

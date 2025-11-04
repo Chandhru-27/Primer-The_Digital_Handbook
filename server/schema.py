@@ -69,14 +69,14 @@ CREATE_TABLE_VAULT = """
         domain VARCHAR(100),
         account_name VARCHAR(100),
         pin_or_password VARCHAR(255),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, domain)
     );
 """
 
 CREATE_TABLE_VAULT_PASSWORDS = """
     CREATE TABLE IF NOT EXISTS vault_passwords (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
         vault_password VARCHAR(255) NOT NULL,
         set_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
