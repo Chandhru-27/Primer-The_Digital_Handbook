@@ -24,7 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import { ThemeToggle } from "../components/theme-toggle";
 import { UserProfile, getUserProfile } from "../lib/api/user";
-import { checkLoginStatus, logout } from "../lib/api/auth";
+import { checkLoginStatus, logOutUser } from "../lib/api/auth";
 import { useEffect, useState } from "react";
 import { useToast } from "../lib/hooks/use-toast";
 
@@ -154,15 +154,14 @@ export function AppSidebar() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  logout();
+                  logOutUser();
                   setUser(undefined);
                   setLoggedIn(false);
-                  // Trigger sidebar re-render by dispatching a custom event
-                  window.dispatchEvent(new Event('auth-change'));
                   toast({
                     title: "Logged out",
                     description: "You have been successfully logged out.",
                   });
+                  window.dispatchEvent(new Event('auth-change'));
                 }}
                 className="text-muted-foreground hover:text-foreground"
               >
