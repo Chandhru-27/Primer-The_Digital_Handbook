@@ -69,9 +69,35 @@ CREATE_TABLE_VAULT = """
         domain VARCHAR(100),
         account_name VARCHAR(100),
         pin_or_password VARCHAR(255),
+        url VARCHAR(255),
+        notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, domain)
     );
+"""
+
+ADD_VAULT_NOTES_COLUMN = """
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='vault' AND column_name='notes'
+    ) THEN
+        ALTER TABLE vault ADD COLUMN notes TEXT;
+    END IF;
+END$$;
+"""
+
+ADD_VAULT_URL_COLUMN = """
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='vault' AND column_name='url'
+    ) THEN
+        ALTER TABLE vault ADD COLUMN url VARCHAR(255);
+    END IF;
+END$$;
 """
 
 CREATE_TABLE_VAULT_PASSWORDS = """
@@ -98,6 +124,8 @@ SCHEMA_LIST = [
     CREATE_TABLE_PERSONAL_HANDBOOK,
     CREATE_TABLE_SOCIAL_LINKS,
     CREATE_TABLE_VAULT,
+    ADD_VAULT_NOTES_COLUMN,
+    ADD_VAULT_URL_COLUMN,
     CREATE_TABLE_VAULT_PASSWORDS,
     CREATE_TABLE_TOKEN_BLOCKLIST
 ]
