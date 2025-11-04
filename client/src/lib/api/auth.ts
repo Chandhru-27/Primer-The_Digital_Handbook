@@ -45,9 +45,33 @@ export const checkLoginStatus = async () => {
   }
 };
 
-export const logout = () => {
-  // Clear any stored auth data
-  localStorage.removeItem("authToken");
-  localStorage.removeItem("userId");
-  // Additional logout logic can be added here
+export const logOutUser = async () => {
+  try {
+    const response = await api.post("/auth/logout");
+    return response.data;
+  } catch (error) {
+    handleAxiosError(error);
+  }
+};
+
+export const setVaultPassword = async (password: string) => {
+  try {
+    const response = await api.post("/vault/set_password", {
+      vault_password: password,
+    });
+    return response.data;
+  } catch (error) {
+    handleAxiosError(error);
+  }
+};
+
+export const unlockVault = async (password: string) => {
+  try {
+    const response = await api.post("/vault/unlock-vault", {
+      vault_password: password,
+    });
+    return response.data;
+  } catch (error) {
+    handleAxiosError(error);
+  }
 };
