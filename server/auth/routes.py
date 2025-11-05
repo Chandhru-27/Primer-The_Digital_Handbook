@@ -20,7 +20,6 @@ load_dotenv()
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-
 def is_valid_email(email):
     """Check if an email is valid with regex"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
