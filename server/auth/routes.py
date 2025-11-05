@@ -50,8 +50,8 @@ def is_token_revoked(jti):
 def add_token_to_blocklist(jti, token_type, user_id=None):
     """Add a jti to the blocklist table"""
     with get_db_connection() as conn:
+        cur = conn.cursor()
         try:
-            cur = conn.cursor()
             cur.execute(
                 "INSERT INTO token_blocklist (jti, token_type, user_id, revoked_at) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING;",
                 (jti, token_type, user_id, datetime.datetime.utcnow())
@@ -116,8 +116,8 @@ def signin():
         return jsonify({"error": "Username and password required"}), 400
 
     with get_db_connection() as conn:
+        cur = conn.cursor()
         try:
-            cur = conn.cursor()
             cur.execute("SELECT id, password FROM users WHERE username=%s;", (username,))
             user = cur.fetchone()
         except Exception as e:
