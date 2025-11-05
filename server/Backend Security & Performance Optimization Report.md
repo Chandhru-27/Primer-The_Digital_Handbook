@@ -1,5 +1,3 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
-
 # Backend Security \& Performance Optimization Report
 
 Your Flask backend has a solid foundation, but there are **critical security vulnerabilities** and **significant performance bottlenecks** that need immediate attention. This comprehensive analysis covers security concerns, performance issues, and provides actionable refactoring recommendations.
