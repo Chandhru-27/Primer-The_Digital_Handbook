@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 import psycopg2
-import os
+from db_setup import get_db_connection
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import re
@@ -20,8 +20,9 @@ load_dotenv()
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-# email validation
+
 def is_valid_email(email):
+    """Check if an email is valid with regex"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     
     if re.fullmatch(pattern, email):
@@ -29,41 +30,43 @@ def is_valid_email(email):
     else:
         return False
     
-def get_db_connection():
-    return psycopg2.connect(
-        host=os.getenv('PG_HOST'),
-        database=os.getenv('PG_DB'),
-        user=os.getenv('PG_USER'),
-        password=os.getenv('PG_PASSWORD'),
-        port=os.getenv('PG_PORT')
-    )
-
-# check token blocklist
-def is_token_revoked(jti):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM token_blocklist WHERE jti=%s;", (jti,))
-    exists = cur.fetchone() is not None
-    cur.close()
-    conn.close()
     
+def is_token_revoked(jti):
+    """Check if the current jti is revoked"""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        try:
+            cur.execute("SELECT 1 FROM token_blocklist WHERE jti=%s;", (jti,))
+            exists = cur.fetchone() is not None
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"error": str(e)}), 400
+        finally:
+            cur.close()
+
     return exists
 
+
 def add_token_to_blocklist(jti, token_type, user_id=None):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO token_blocklist (jti, token_type, user_id, revoked_at) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING;",
-        (jti, token_type, user_id, datetime.datetime.utcnow())
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
+    """Add a jti to the blocklist table"""
+    with get_db_connection() as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO token_blocklist (jti, token_type, user_id, revoked_at) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING;",
+                (jti, token_type, user_id, datetime.datetime.utcnow())
+            )
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"error": str(e)}), 400
+        finally:
+            cur.close()
 
 
-# for signup with password hashing
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
+    """Signup route for making a post request"""
     data = request.json or {}
     username = data.get('username')
     email = data.get('email')
@@ -79,30 +82,32 @@ def signup():
         return jsonify({"error": "Invalid Email"}), 400
 
     hashed_password = generate_password_hash(password)
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute(
-            "INSERT INTO users (username,email, password) VALUES (%s, %s, %s) RETURNING id;",
-            (username, email, hashed_password)
-        )
-        user_id = cur.fetchone()[0]
-        conn.commit()
-    except psycopg2.errors.UniqueViolation:
-        conn.rollback()
-        return jsonify({"error": "Username or email already exists"}), 400
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cur.close()
-        conn.close()
+    
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "INSERT INTO users (username,email, password) VALUES (%s, %s, %s) RETURNING id;",
+                (username, email, hashed_password)
+            )
+            user_id = cur.fetchone()[0]
+            conn.commit()
+        except psycopg2.errors.UniqueViolation:
+            conn.rollback()
+            return jsonify({"error": "Username or email already exists"}), 400
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"error": str(e)}), 400
+        finally:
+            cur.close()
+            conn.close()
 
     return jsonify({"message": "User created!", "user_id": user_id}), 201
   
-#for sign in
+
 @auth_bp.route('/signin', methods=['POST'])
 def signin():
+    """Sign in the user securely with JWTs"""
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -110,12 +115,15 @@ def signin():
     if not username or not password:
         return jsonify({"error": "Username and password required"}), 400
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, password FROM users WHERE username=%s;", (username,))
-    user = cur.fetchone()
-    cur.close()
-    conn.close()
+    with get_db_connection() as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT id, password FROM users WHERE username=%s;", (username,))
+            user = cur.fetchone()
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+        finally:
+            cur.close()
 
     if not user:
         return jsonify({"error": "Invalid username or password"}), 401
@@ -123,7 +131,6 @@ def signin():
     if not check_password_hash(pw_hash, password):
         return jsonify({"error": "Invalid username or password"}), 401
 
-    # create and assign tokens
     access_token = create_access_token(identity=str(user_id), fresh=True)
     refresh_token = create_refresh_token(identity=str(user_id))
 
@@ -134,10 +141,11 @@ def signin():
 
     return response, 200
 
-# use refresh token to get access token
+
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh_access_token():
+    """Use refresh token to get the access token"""
     identity = get_jwt_identity()
     jti = get_jwt()['jti']
 
@@ -150,15 +158,19 @@ def refresh_access_token():
     
     return response,200
 
+
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
+    """Get the current user"""
     user_id = get_jwt_identity()
     return jsonify({"logged_in": True, "user_id":user_id}), 200
+
 
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():
+    """Handle logout by blocking the jti"""
     jwt = get_jwt()
     jti = jwt['jti']
     identity = get_jwt_identity()
