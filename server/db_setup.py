@@ -23,7 +23,7 @@ def initialize_connection_pool():
             port=os.getenv('PG_PORT'),
             sslmode='disable' 
         )
-        print("Connection pool created succesuccessfully")
+        print("Connection pool created successfully")
     except psycopg2.Error as e:
         print(f"Error initializing connection pool: {e}")
 
