@@ -121,6 +121,7 @@ def signin():
             cur.execute("SELECT id, password FROM users WHERE username=%s;", (username,))
             user = cur.fetchone()
         except Exception as e:
+            conn.rollback()
             return jsonify({"error": str(e)}), 400
         finally:
             cur.close()
