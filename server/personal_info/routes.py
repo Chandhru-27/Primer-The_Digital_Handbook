@@ -26,15 +26,14 @@ def save_personal_info():
     profile_pic = data.get('profile_pic')
     full_name = data.get('full_name')
     age = data.get('age')
-    city = data.get('city')
-    state = data.get('state')
+    address = data.get('address')
 
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        UPDATE users SET profile_pic=%s, full_name=%s, age=%s, city=%s, state=%s, updated_at=CURRENT_TIMESTAMP
+        UPDATE users SET profile_pic=%s, full_name=%s, age=%s, address=%s, updated_at=CURRENT_TIMESTAMP
         WHERE id=%s;
-    """, (profile_pic, full_name, age, city, state, user_id))
+    """, (profile_pic, full_name, age, address, user_id))
     conn.commit()
     cur.close()
     conn.close()
@@ -49,7 +48,7 @@ def get_personal_info():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT username, email, full_name, phone, age, gender, profile_pic, city, state FROM users WHERE id=%s;", (user_id,))
+    cur.execute("SELECT username, email, full_name, phone, age, gender, profile_pic, address FROM users WHERE id=%s;", (user_id,))
     user_data = cur.fetchone()
 
     cur.close()
@@ -58,7 +57,7 @@ def get_personal_info():
     if not user_data:
         return jsonify({"error": "User not found"}), 404
 
-    keys = ['username', 'email', 'full_name', 'phone', 'profession', 'gender', 'profile_pic', 'city', 'state']
+    keys = ['username', 'email', 'full_name', 'phone', 'profession', 'gender', 'profile_pic', 'address']
     return jsonify(dict(zip(keys, user_data)))
 
 @personal_bp.route("/handbook", methods=["GET"])
@@ -114,8 +113,7 @@ def update_personal_info():
         'phone': 'phone',
         'age': 'age',
         'gender': 'gender',
-        'city': 'city',
-        'state': 'state'
+        'address': 'address'
     }
 
     for key, column in field_mappings.items():

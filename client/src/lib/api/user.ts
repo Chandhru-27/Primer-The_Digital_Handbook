@@ -14,8 +14,7 @@ export interface UserProfile {
   age?: number | null;
   gender?: string | null;
   profile_pic?: string | null;
-  city?: string | null;
-  state?: string | null;
+  address?: string | null;
 }
 
 export interface HandbookEntry {
@@ -152,5 +151,3 @@ export const deleteSocialLink = async (linkId: number) => {
     handleAxiosError(error);
   }
 };
-
-

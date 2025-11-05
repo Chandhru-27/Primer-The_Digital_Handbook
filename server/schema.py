@@ -33,8 +33,7 @@ CREATE_TABLE_USERS = """
         age INTEGER,
         gender gender_enum,
         profile_pic VARCHAR(255),
-        city VARCHAR(100),
-        state VARCHAR(100),
+        address TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

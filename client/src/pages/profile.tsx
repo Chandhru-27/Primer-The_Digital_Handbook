@@ -81,9 +81,7 @@ export default function Profile() {
           phone: userData.phone || "",
           age: userData.profession?.toString() || "", // profession field contains age
           gender: userData.gender || "",
-          address: `${userData.city || ""}${
-            userData.city && userData.state ? ", " : ""
-          }${userData.state || ""}`,
+          address: userData.address || "",
         });
 
         // Load handbook data
@@ -119,17 +117,9 @@ export default function Profile() {
       // Always send gender, even if empty string, to avoid null issues
       updateData.gender = basicInfo.gender || null;
 
-      // Handle address - split into city and state if present
+      // Handle address
       if (basicInfo.address) {
-        const addressParts = basicInfo.address
-          .split(",")
-          .map((part) => part.trim());
-        if (addressParts.length >= 2) {
-          updateData.city = addressParts[0];
-          updateData.state = addressParts[1];
-        } else {
-          updateData.city = addressParts[0];
-        }
+        updateData.address = basicInfo.address;
       }
 
       // Only call API if there's data to update
