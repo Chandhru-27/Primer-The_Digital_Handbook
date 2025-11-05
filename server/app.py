@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from db_setup import initialize_database_and_create_tables
+from db_setup import initialize_connection_pool, initialize_database_and_create_tables
 load_dotenv()
 
 def create_app():
@@ -77,6 +77,7 @@ def home():
 
 
 if __name__ == "__main__":
+    initialize_connection_pool()
     initialize_database_and_create_tables()
     app.run(debug=True, host="localhost", port=5000)
 
