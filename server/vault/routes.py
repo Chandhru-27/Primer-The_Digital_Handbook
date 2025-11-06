@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from werkzeug.security import generate_password_hash, check_password_hash
+from extensions import bcrypt
 from dotenv import load_dotenv
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from db_setup import get_db_connection
@@ -19,7 +19,7 @@ def set_vault_password():
     if not user_id or not vault_password:
         return jsonify({"error": "user_id and vault_password required"}), 400
     
-    hashed_password = generate_password_hash(vault_password)
+    hashed_password = bcrypt.generate_password_hash(vault_password).decode('utf-8')
 
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -117,7 +117,7 @@ def unlock_vault():
             cur.execute("SELECT vault_password FROM vault_passwords WHERE user_id=%s", (user_id,))
             result = cur.fetchone()    
 
-            if not result or not check_password_hash(result[0], vault_password):
+            if not result or not bcrypt.check_password_hash(result[0], vault_password):
                 cur.close()
                 return jsonify({"error": "Invalid vault password"}), 401
         except Exception as e:
@@ -147,7 +147,7 @@ def view_vault_password():
             cur.execute("SELECT vault_password FROM vault_passwords WHERE user_id=%s", (user_id,))
             result = cur.fetchone()
 
-            if not result or not check_password_hash(result[0], vault_password):
+            if not result or not bcrypt.check_password_hash(result[0], vault_password):
                 cur.close()
                 return jsonify({"error": "Invalid vault password"}), 401
             

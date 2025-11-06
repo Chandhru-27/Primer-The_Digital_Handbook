@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
 import psycopg2
 from db_setup import get_db_connection
-from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import re
+from extensions import bcrypt
 import datetime
 from flask_jwt_extended import (
     jwt_required,
@@ -80,7 +80,7 @@ def signup():
     if not is_valid_email(email=email):
         return jsonify({"error": "Invalid Email"}), 400
 
-    hashed_password = generate_password_hash(password)
+    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
     
     with get_db_connection() as conn:
         cur = conn.cursor()
@@ -128,7 +128,7 @@ def signin():
     if not user:
         return jsonify({"error": "Invalid username or password"}), 401
     user_id, pw_hash = user
-    if not check_password_hash(pw_hash, password):
+    if not bcrypt.check_password_hash(pw_hash, password):
         return jsonify({"error": "Invalid username or password"}), 401
 
     access_token = create_access_token(identity=str(user_id), fresh=True)
