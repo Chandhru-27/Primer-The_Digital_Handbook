@@ -12,6 +12,7 @@ import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { UserProfile, getSocialLinks, getUserProfile } from "../lib/api/user";
 import { checkLoginStatus } from "../lib/api/auth";
+import { getVaultEntries } from "@/lib/api/vault";
 
 interface LocalSocialLink {
   platform: string;
@@ -20,7 +21,7 @@ interface LocalSocialLink {
 
 interface Credential {
   name: string;
-  username: string;
+  username?: string;
 }
 
 export default function Dashboard() {
@@ -29,10 +30,7 @@ export default function Dashboard() {
 
   const [socialLinks, setSocialLinks] = useState<LocalSocialLink[]>([]);
 
-  const [credentials, setCredentials] = useState<Credential[]>([
-    { name: "Google", username: "john.doe@gmail.com" },
-    { name: "GitHub", username: "johndoe" },
-  ]);
+  const [credentials, setCredentials] = useState<Credential[]>([]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -40,10 +38,15 @@ export default function Dashboard() {
       if (isLoggedIn) {
         const userData = await getUserProfile();
         const socialLinksData = await getSocialLinks();
+        const CredentialsData = await getVaultEntries();
         setUser(userData);
-        const transformedLinks = socialLinksData.map(link => ({
+        const transformVaultData = CredentialsData.map((data) => ({
+          name: data.account_name,
+        }));
+        setCredentials(transformVaultData);
+        const transformedLinks = socialLinksData.map((link) => ({
           platform: link.platform_name,
-          url: link.profile_link
+          url: link.profile_link,
         }));
         setSocialLinks(transformedLinks);
       }
@@ -120,8 +123,8 @@ export default function Dashboard() {
                 </div>
 
                 <p className="text-muted-foreground text-lg mb-4">
-                  Primer - Your personal handbook is ready to help you stay organized
-                  and secure.
+                  Primer - Your personal handbook is ready to help you stay
+                  organized and secure.
                 </p>
 
                 <div className="flex flex-wrap gap-4 text-sm">
