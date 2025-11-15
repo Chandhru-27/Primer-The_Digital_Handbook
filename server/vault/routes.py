@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from extensions import bcrypt
+from extensions import bcrypt, fernet
 from dotenv import load_dotenv
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from db_setup import get_db_connection
@@ -48,8 +48,10 @@ def add_vault_entry():
     data = request.json
     domain = data.get('domain')
     account_name = data.get('account_name')
-    pin_or_password = data.get('pin_or_password')
+    pin_or_password : str = data.get('pin_or_password')
     notes = data.get('notes')
+
+    encrypted_pwd = fernet.encrypt(pin_or_password.encode()).decode()
 
     if not user_id or not domain or not account_name or not pin_or_password:
         return jsonify({"error": "All fields required"}), 400
@@ -67,7 +69,7 @@ def add_vault_entry():
                     pin_or_password = EXCLUDED.pin_or_password,
                     url = EXCLUDED.url,
                     notes = EXCLUDED.notes;
-            """, (user_id, domain, account_name, pin_or_password, url, notes))
+            """, (user_id, domain, account_name, encrypted_pwd, url, notes))
             conn.commit()
         except Exception as e:
             conn.rollback()
@@ -154,12 +156,13 @@ def view_vault_password():
             cur.execute("SELECT domain, account_name, pin_or_password, url, notes FROM vault WHERE id=%s AND user_id=%s",
                         (entry_id, user_id))
             entry = cur.fetchone()
-        
+            pwd_payload = fernet.decrypt(entry[2].encode()).decode()
+
             if entry:
                 return jsonify({
                     "domain": entry[0],
                     "account_name": entry[1],
-                    "pin_or_password": entry[2],
+                    "pin_or_password": pwd_payload,
                     "url": entry[3],
                     "notes": entry[4]
                 })
@@ -215,6 +218,8 @@ def update_vault_entry(entry_id):
     url = data.get('url')
     notes = data.get('notes')
 
+    encrypted_pwd = fernet.encrypt(pin_or_password.encode()).decode()
+
     with get_db_connection() as conn:
         cur = conn.cursor()
         try:
@@ -238,7 +243,7 @@ def update_vault_entry(entry_id):
                     url = COALESCE(%s, url),
                     notes = COALESCE(%s, notes)
                 WHERE id = %s AND user_id = %s;
-            """, (domain, account_name, pin_or_password, url, notes, entry_id, user_id))
+            """, (domain, account_name, encrypted_pwd, url, notes, entry_id, user_id))
             conn.commit()
         except Exception as e:
             conn.rollback()
