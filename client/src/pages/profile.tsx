@@ -40,13 +40,22 @@ import {
   updateHandbookField,
   HandbookEntry,
 } from "@/lib/api/user";
+import {
+  useFetchHandbook,
+  useUpdateHandbook,
+  useUpdateUserProfile,
+  useUserProfile,
+} from "@/lib/hooks/app-hooks";
 
 export default function Profile() {
   const [isEditingBasic, setIsEditingBasic] = useState(false);
   const [isEditingHandbook, setIsEditingHandbook] = useState(false);
   const { toast } = useToast();
 
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const { data: user, isLoading: userLoading } = useUserProfile();
+  const { data: handbookData, isLoading: handbookLoading } = useFetchHandbook();
+
+  // const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [basicInfo, setBasicInfo] = useState({
@@ -66,73 +75,54 @@ export default function Profile() {
     notes: "",
   });
 
-  // Load user data from backend
   useEffect(() => {
-    const loadUserData = async () => {
-      const isLoggedIn = await checkLoginStatus();
-      if (isLoggedIn) {
-        const userData = await getUserProfile();
-        setUser(userData);
+    if (user) {
+      setBasicInfo({
+        name: user.full_name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        age: user.age?.toString() || "",
+        gender: user.gender || "",
+        address: user.address || "",
+      });
+    }
+  }, [user]);
 
-        // Populate form data from user profile
-        setBasicInfo({
-          name: userData.full_name || "",
-          email: userData.email || "",
-          phone: userData.phone || "",
-          age: userData.profession?.toString() || "", // profession field contains age
-          gender: userData.gender || "",
-          address: userData.address || "",
-        });
+  useEffect(() => {
+    if (handbookData) {
+      const map = Object.fromEntries(
+        handbookData.map((data) => [data.field_name, data.field_value])
+      );
 
-        // Load handbook data
-        const handbookData = await getHandbookInfo();
-        const handbookMap: { [key: string]: string } = {};
-        handbookData.forEach((entry: HandbookEntry) => {
-          handbookMap[entry.field_name] = entry.field_value;
-        });
+      setHandbookInfo({
+        biography: map.biography || "",
+        hobbies: map.hobbies || "",
+        skills: map.skills || "",
+        goals: map.goals || "",
+        notes: map.notes || "",
+      });
+    }
+  }, [handbookData]);
 
-        setHandbookInfo({
-          biography: handbookMap.biography || "",
-          hobbies: handbookMap.hobbies || "",
-          skills: handbookMap.skills || "",
-          goals: handbookMap.goals || "",
-          notes: handbookMap.notes || "",
-        });
-      }
-      setIsLoading(false);
-    };
-
-    loadUserData();
-  }, []);
+  const { mutateAsync: updateProfile } = useUpdateUserProfile();
 
   const handleSaveBasic = async () => {
     try {
-      // Prepare data for API call - map form fields to API fields
       const updateData: Partial<UserProfile> = {};
 
       if (basicInfo.name) updateData.full_name = basicInfo.name;
       if (basicInfo.email) updateData.email = basicInfo.email;
       if (basicInfo.phone) updateData.phone = basicInfo.phone;
       if (basicInfo.age) updateData.age = parseInt(basicInfo.age);
-      // Always send gender, even if empty string, to avoid null issues
       updateData.gender = basicInfo.gender || null;
+      if (basicInfo.address) updateData.address = basicInfo.address;
 
-      // Handle address
-      if (basicInfo.address) {
-        updateData.address = basicInfo.address;
-      }
-
-      // Only call API if there's data to update
       if (Object.keys(updateData).length > 0) {
-        const response = await updateUserProfile(updateData as UserProfile);
-        if (response) {
-          toast({
-            title: "Profile updated",
-            description: "Your basic information has been saved successfully.",
-          });
-          const updatedUser = await getUserProfile();
-          setUser(updatedUser);
-        }
+        await updateProfile(updateData);
+        toast({
+          title: "Profile updated",
+          description: "Your basic information has been saved successfully.",
+        });
       }
 
       setIsEditingBasic(false);
@@ -145,45 +135,55 @@ export default function Profile() {
     }
   };
 
+  const { mutateAsync: updateHndbook } = useUpdateHandbook();
+
   const handleSaveHandbook = async () => {
     try {
-      // Update each handbook field that has content
       const updatePromises = [];
 
       if (handbookInfo.biography) {
         updatePromises.push(
-          updateHandbookField("biography", handbookInfo.biography)
+          updateHndbook({
+            field_name: "biography",
+            field_value: handbookInfo.biography,
+          })
         );
       }
       if (handbookInfo.hobbies) {
         updatePromises.push(
-          updateHandbookField("hobbies", handbookInfo.hobbies)
+          updateHndbook({
+            field_name: "hobbies",
+            field_value: handbookInfo.hobbies,
+          })
         );
       }
       if (handbookInfo.skills) {
-        updatePromises.push(updateHandbookField("skills", handbookInfo.skills));
+        updateHndbook({
+          field_name: "skills",
+          field_value: handbookInfo.skills,
+        });
       }
       if (handbookInfo.goals) {
-        updatePromises.push(updateHandbookField("goals", handbookInfo.goals));
+        updateHndbook({ field_name: "goals", field_value: handbookInfo.goals });
       }
       if (handbookInfo.notes) {
-        updatePromises.push(updateHandbookField("notes", handbookInfo.notes));
+        updateHndbook({ field_name: "notes", field_value: handbookInfo.notes });
       }
 
-      // Wait for all updates to complete
-      if (updatePromises.length > 0) {
-        await Promise.all(updatePromises);
-        toast({
-          title: "Handbook updated",
-          description: "Your personal handbook has been saved successfully.",
-        });
-      } else {
+      if (updatePromises.length === 0) {
         toast({
           title: "No changes",
-          description: "Please add some content to your handbook fields.",
+          description: "Please add some content.",
           variant: "destructive",
         });
       }
+
+      await Promise.all(updatePromises);
+
+      toast({
+        title: "Handbook updated",
+        description: "Your personal handbook has been saved successfully.",
+      });
 
       setIsEditingHandbook(false);
     } catch (error) {
@@ -195,7 +195,7 @@ export default function Profile() {
     }
   };
 
-  if (isLoading) {
+  if (userLoading || handbookLoading) {
     return (
       <div className="h-full flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
