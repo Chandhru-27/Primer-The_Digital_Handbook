@@ -63,6 +63,7 @@ def add_token_to_blocklist(jti, token_type, user_id=None):
 
 
 @auth_bp.route('/signup', methods=['POST'])
+@limiter.limit("2 per minute")
 def signup():
     """Signup route for making a post request"""
     data = request.json or {}
@@ -104,6 +105,7 @@ def signup():
   
 
 @auth_bp.route('/signin', methods=['POST'])
+@limiter.limit("2 per minute")
 def signin():
     """Sign in the user securely with JWTs"""
     data = request.json
