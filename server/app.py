@@ -17,27 +17,12 @@ def create_app():
     else:
         app.config.from_object(DevConfig)
 
-    # # Key configuration
-    # app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-    # app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
-
-    # # Cookie configuration
-    # app.config['JWT_TOKEN_LOCATION'] = ['cookies']
-    # app.config['JWT_COOKIE_SECURE'] = False 
-    # app.config['JWT_COOKIE_CSRF_PROTECT'] = False  
-    # app.config["JWT_COOKIE_SAMESITE"] = "Lax"
-    # app.config['JWT_ACCESS_COOKIE_PATH'] = '/'
-    # app.config['JWT_REFRESH_COOKIE_PATH'] = '/'
-
-    # # Expiration times from .env
-    # app.config['JWT_ACCESS_TOKEN_EXPIRES'] = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 1600))
-    # app.config['JWT_REFRESH_TOKEN_EXPIRES'] = int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 604800))
-
     # Global JWT manager instance
     jwt = JWTManager(app)
 
+    # TODO: Enable rate limiter
     # Global config for rate limiter
-    limiter.init_app(app=app)
+    # limiter.init_app(app=app)
 
     # CORS config for endpoint access
     # Use configured methods list (not a literal string) and allow headers from config
@@ -54,11 +39,13 @@ def create_app():
     from personal_info.routes import personal_bp
     from social_links.routes import social_bp
     from vault.routes import vault_bp
+    from utils.routes import api_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(personal_bp)
     app.register_blueprint(social_bp)
     app.register_blueprint(vault_bp)
+    app.register_blueprint(api_bp)
 
     # Security headers configuration
     @app.after_request
