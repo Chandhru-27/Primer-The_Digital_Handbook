@@ -236,6 +236,9 @@ export default function SocialLinks() {
                 <DialogDescription>
                   Connect a new social media profile to your handbook
                 </DialogDescription>
+                <DialogDescription className="text-green-600 bg-black/20 w-fit px-4 py-1 rounded-md border-[1px]">
+                  More platform support coming soon
+                </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4 py-4">
