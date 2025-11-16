@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { User, Link2, Shield, ArrowRight, Edit, Loader2 } from "lucide-react";
 import {
@@ -10,57 +9,22 @@ import {
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { UserProfile, getSocialLinks, getUserProfile } from "../lib/api/user";
-import { checkLoginStatus } from "../lib/api/auth";
-import { getVaultEntries } from "@/lib/api/vault";
-
-interface LocalSocialLink {
-  platform: string;
-  url: string;
-}
-
-interface Credential {
-  name: string;
-  username?: string;
-}
+import { useDashboard } from "@/lib/hooks/app-hooks";
 
 export default function Dashboard() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const { data, isLoading } = useDashboard();
 
-  const [socialLinks, setSocialLinks] = useState<LocalSocialLink[]>([]);
+  const userName = data?.username;
+  const vaultCount = data?.vault_count;
+  const socialCount = data?.social_count;
+  let userInitials = "U";
 
-  const [credentials, setCredentials] = useState<Credential[]>([]);
-
-  useEffect(() => {
-    const loadUserData = async () => {
-      const isLoggedIn = await checkLoginStatus();
-      if (isLoggedIn) {
-        const userData = await getUserProfile();
-        const socialLinksData = await getSocialLinks();
-        const CredentialsData = await getVaultEntries();
-        setUser(userData);
-        const transformVaultData = CredentialsData.map((data) => ({
-          name: data.account_name,
-        }));
-        setCredentials(transformVaultData);
-        const transformedLinks = socialLinksData.map((link) => ({
-          platform: link.platform_name,
-          url: link.profile_link,
-        }));
-        setSocialLinks(transformedLinks);
-      }
-      setIsLoading(false);
-    };
-
-    loadUserData();
-  }, []);
-
-  const userName = user?.full_name || user?.username || "User";
-  const userInitials = userName
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("");
+  if (userName) {
+    userInitials = userName
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("");
+  }
 
   const quickActions = [
     {
@@ -69,7 +33,7 @@ export default function Dashboard() {
       icon: User,
       href: "/profile",
       color: "bg-primary/10 text-primary",
-      stats: user?.full_name ? "Profile complete" : "Complete your profile",
+      stats: userName ? "Profile complete" : "Complete your profile",
     },
     {
       title: "Social Links",
@@ -77,9 +41,7 @@ export default function Dashboard() {
       icon: Link2,
       href: "/social-links",
       color: "bg-chart-2/10 text-chart-2",
-      stats: `${socialLinks.length} ${
-        socialLinks.length === 1 ? "link" : "links"
-      } connected`,
+      stats: `${socialCount} Social Links `,
     },
     {
       title: "Vault",
@@ -87,12 +49,10 @@ export default function Dashboard() {
       icon: Shield,
       href: "/vault",
       color: "bg-chart-3/10 text-chart-3",
-      stats: `${credentials.length} ${
-        credentials.length === 1 ? "credential" : "credentials"
-      } saved`,
+      stats: `${vaultCount} Vault Entries`,
     },
   ];
-
+  console.log("Dashboard query executed", data);
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -109,7 +69,7 @@ export default function Dashboard() {
           <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-primary/20 via-primary/10 to-transparent backdrop-blur-sm border border-primary/20 p-8 md:p-12">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               <Avatar className="h-24 w-24 ring-4 ring-background shadow-lg">
-                <AvatarImage src={user?.profile_pic || ""} alt={userName} />
+                <AvatarImage src={data?.profile_pic || ""} alt={userName} />
                 <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
                   {userInitials}
                 </AvatarFallback>
@@ -118,7 +78,7 @@ export default function Dashboard() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                    Welcome back, {userName.split(" ")[0]}!
+                    Welcome back, {userName}!
                   </h1>
                 </div>
 
@@ -137,7 +97,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-blue-500" />
                     <span className="text-muted-foreground">
-                      {socialLinks.length} social links
+                      {socialCount} social links
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 import api, { handleAxiosError } from "./axios";
 import { API_BASE_URL } from "./constants";
+import { getVaultEntries } from "./vault";
 
 export interface ErrorResponse {
   message: string;
@@ -7,8 +8,8 @@ export interface ErrorResponse {
 }
 
 export interface UserProfile {
-  username: string;
-  email: string;
+  username?: string;
+  email?: string;
   full_name?: string | null;
   phone?: string | null;
   age?: number | null;
@@ -146,6 +147,15 @@ export const updateSocialLink = async (
 export const deleteSocialLink = async (linkId: number) => {
   try {
     const response = await api.delete(`/social/delete/${linkId}`);
+    return response.data;
+  } catch (error) {
+    handleAxiosError(error);
+  }
+};
+
+export const getDashboard = async () => {
+  try {
+    const response = await api.get("/api/dashboard");
     return response.data;
   } catch (error) {
     handleAxiosError(error);
