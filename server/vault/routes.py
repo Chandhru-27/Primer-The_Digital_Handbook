@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from extensions import bcrypt, fernet
+from extensions import bcrypt, fernet, limiter
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from db_setup import get_db_connection
 
@@ -9,6 +9,7 @@ vault_bp = Blueprint('vault', __name__, url_prefix='/vault')
 
 @vault_bp.route('/set_password', methods=['POST'])
 @jwt_required()
+@limiter.limit("2 per minute")
 def set_vault_password():
     """Set or update vault password (only one per user)"""
     user_id = get_jwt_identity()
