@@ -31,7 +31,7 @@ function App() {
   };
 
   return (
-    <ThemeProvider defaultTheme="light">
+    <ThemeProvider defaultTheme="dark">
       <TooltipProvider>
         <SidebarProvider style={style as React.CSSProperties}>
           <div className="flex h-screen w-full">
