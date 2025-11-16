@@ -39,7 +39,7 @@ def save_personal_info():
 def get_personal_info():
     """Retrieve user's personal information"""
     user_id = get_jwt_identity()
-    
+    print("HIT: user profile endpoint")
     with get_db_connection() as conn:
         cur = conn.cursor()
         try:
@@ -54,7 +54,7 @@ def get_personal_info():
     if not user_data:
         return jsonify({"error": "User not found"}), 404
 
-    keys = ['username', 'email', 'full_name', 'phone', 'profession', 'gender', 'profile_pic', 'address']
+    keys = ['username', 'email', 'full_name', 'phone', 'age', 'gender', 'profile_pic', 'address']
 
     return jsonify(dict(zip(keys, user_data)))
 
