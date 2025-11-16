@@ -1,9 +1,8 @@
 from flask import Blueprint, request, jsonify
 import psycopg2
 from db_setup import get_db_connection
-from dotenv import load_dotenv
 import re
-from extensions import bcrypt
+from extensions import bcrypt, limiter
 import datetime
 from flask_jwt_extended import (
     jwt_required,
@@ -16,9 +15,9 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
 )
 
-load_dotenv()
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+
 
 def is_valid_email(email):
     """Check if an email is valid with regex"""

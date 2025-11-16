@@ -1,11 +1,10 @@
 from flask import Blueprint, request, jsonify
-from dotenv import load_dotenv
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from db_setup import get_db_connection
 
-load_dotenv()
 
 personal_bp = Blueprint('personal_info', __name__, url_prefix='/personal')
+
 
 @personal_bp.route('/save', methods=['POST'])
 @jwt_required()

@@ -1,12 +1,11 @@
 from flask import Blueprint, request, jsonify
 from extensions import bcrypt, fernet
-from dotenv import load_dotenv
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from db_setup import get_db_connection
 
-load_dotenv()
 
 vault_bp = Blueprint('vault', __name__, url_prefix='/vault')
+
 
 @vault_bp.route('/set_password', methods=['POST'])
 @jwt_required()

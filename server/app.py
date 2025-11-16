@@ -5,14 +5,17 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from extensions import limiter
 from db_setup import initialize_connection_pool, initialize_database_and_create_tables
+
 load_dotenv()
 
 def create_app():
     app = Flask(__name__)
+
+    # Key configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 
-    # cookie configuration
+    # Cookie configuration
     app.config['JWT_TOKEN_LOCATION'] = ['cookies']
     app.config['JWT_COOKIE_SECURE'] = False 
     app.config['JWT_COOKIE_CSRF_PROTECT'] = False  
@@ -24,6 +27,7 @@ def create_app():
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 1600))
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 604800))
 
+    # Global JWT manager instance
     jwt = JWTManager(app)
 
     # Global config for rate limiter
@@ -43,7 +47,7 @@ def create_app():
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     )
     
-    # Import and register blueprints (avoids circular imports)
+    # Import and register blueprints here to avoids circular imports
     from auth.routes import auth_bp
     from personal_info.routes import personal_bp
     from social_links.routes import social_bp
@@ -54,6 +58,7 @@ def create_app():
     app.register_blueprint(social_bp)
     app.register_blueprint(vault_bp)
 
+    # Security headers configuration
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'

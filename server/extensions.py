@@ -1,8 +1,11 @@
 from flask_bcrypt import Bcrypt
+from dotenv import load_dotenv
+from cryptography.fernet import Fernet
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from cryptography.fernet import Fernet
 import os
+
+load_dotenv()
 
 # global bcrypt instance 
 bcrypt = Bcrypt()
