@@ -28,15 +28,26 @@ def add_social_link():
             cur.execute("""
                 INSERT INTO social_links (user_id, platform_name, username, profile_link)
                 VALUES (%s, %s, %s, %s)
+                RETURNING id
             """, (user_id, platform_name, username, profile_link))
+            
+            new_id = cur.fetchone()[0]
             conn.commit()
+
+            new_link = {
+                "id": new_id,
+                "platform_name": platform_name,
+                "username": username,
+                "profile_link": profile_link
+            }
+
         except Exception as e:
             conn.rollback()
             return jsonify({"error": str(e)}), 400
         finally:
             cur.close()
 
-    return jsonify({"message": "Social link added!"}), 201
+    return jsonify(new_link), 201
 
 
 @social_bp.route('/get-social', methods=['GET'])

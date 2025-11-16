@@ -50,6 +50,12 @@ import {
   deleteSocialLink,
   SocialLink,
 } from "../lib/api/user";
+import {
+  useAddSocial,
+  useDeleteSocial,
+  useSocialLinks,
+  useUpdateSocial,
+} from "@/lib/hooks/app-hooks";
 
 const platformIcons: Record<
   string,
@@ -66,7 +72,6 @@ const platformIcons: Record<
 export default function SocialLinks() {
   const { toast } = useToast();
 
-  const [links, setLinks] = useState<SocialLink[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
@@ -76,20 +81,10 @@ export default function SocialLinks() {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadSocialLinks = async () => {
-      try {
-        const socialLinks = await getSocialLinks();
-        setLinks(socialLinks);
-      } catch (error) {
-        console.error("Failed to load social links:", error);
-      }
-
-      setLoading(false);
-    };
-
-    loadSocialLinks();
-  }, []);
+  const { data: links = [], isLoading: socialLoading } = useSocialLinks();
+  const addLink = useAddSocial();
+  const updateLink = useUpdateSocial();
+  const deleteLink = useDeleteSocial();
 
   const handleAdd = async () => {
     if (!formData.platform || !formData.username || !formData.url) {
@@ -101,35 +96,30 @@ export default function SocialLinks() {
       return;
     }
 
-    try {
-      setLoading(true);
-      const response = await addSocialLink(
-        formData.platform,
-        formData.username,
-        formData.url
-      );
-
-      if (response) {
-        const updatedLinks = await getSocialLinks();
-        setLinks(updatedLinks);
-
-        setFormData({ platform: "", username: "", url: "" });
-        setIsAddDialogOpen(false);
-
-        toast({
-          title: "Link added",
-          description: `Your ${formData.platform} profile has been added successfully.`,
-        });
+    addLink.mutate(
+      {
+        platform_name: formData.platform,
+        username: formData.username,
+        profile_link: formData.url,
+      },
+      {
+        onSuccess: () => {
+          setFormData({ platform: "", username: "", url: "" });
+          setIsAddDialogOpen(false);
+          toast({
+            title: "Link added",
+            description: `Your ${formData.platform} profile has been added successfully.`,
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to add social link. Please try again.",
+            variant: "destructive",
+          });
+        },
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to add social link. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    );
   };
 
   const handleEdit = (link: SocialLink) => {
@@ -141,69 +131,63 @@ export default function SocialLinks() {
     });
   };
 
-  const handleUpdate = async (id: number) => {
-    try {
-      setLoading(true);
-      const response = await updateSocialLink(
-        id,
-        formData.platform,
-        formData.username,
-        formData.url
-      );
-
-      if (response) {
-        // Reload social links to get updated data
-        const updatedLinks = await getSocialLinks();
-        setLinks(updatedLinks);
-
-        setEditingId(null);
-        setFormData({ platform: "", username: "", url: "" });
-
-        toast({
-          title: "Link updated",
-          description: "Your social link has been updated successfully.",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update social link. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: number, platform: string) => {
-    try {
-      const response = await deleteSocialLink(id);
-
-      if (response) {
-        // Reload social links to reflect the deletion
-        const updatedLinks = await getSocialLinks();
-        setLinks(updatedLinks);
-
-        toast({
-          title: "Link removed",
-          description: `Your ${platform} profile has been removed successfully.`,
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete social link. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleCancel = () => {
     setEditingId(null);
     setFormData({ platform: "", username: "", url: "" });
   };
 
-  if (loading) {
+  const handleUpdate = async (id: number) => {
+    updateLink.mutate(
+      {
+        link_id: id,
+        platform_name: formData.platform,
+        username: formData.username,
+        profile_link: formData.url,
+      },
+      {
+        onSuccess: () => {
+          setEditingId(null);
+          setFormData({ platform: "", username: "", url: "" });
+          toast({
+            title: "Link updated",
+            description: "Your social link has been updated successfully.",
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to update social link. Please try again.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const handleDelete = async (id: number, platform: string) => {
+    deleteLink.mutate(
+      {
+        linkId: id,
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Link removed",
+            description: `Your ${platform} profile has been removed successfully.`,
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to delete social link. Please try again.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  if (socialLoading) {
     return (
       <div className="h-full flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
