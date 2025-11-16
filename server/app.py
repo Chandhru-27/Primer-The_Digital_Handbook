@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from extensions import limiter
 from db_setup import initialize_connection_pool, initialize_database_and_create_tables
 load_dotenv()
 
@@ -25,6 +26,9 @@ def create_app():
 
     jwt = JWTManager(app)
 
+    # Global config for rate limiter
+    limiter.init_app(app=app)
+
     # CORS config for endpoint access
     CORS(
         app,
@@ -38,6 +42,7 @@ def create_app():
         ],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     )
+    
     # Import and register blueprints (avoids circular imports)
     from auth.routes import auth_bp
     from personal_info.routes import personal_bp
