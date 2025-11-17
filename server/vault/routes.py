@@ -68,8 +68,10 @@ def add_vault_entry():
                     account_name = EXCLUDED.account_name,
                     pin_or_password = EXCLUDED.pin_or_password,
                     url = EXCLUDED.url,
-                    notes = EXCLUDED.notes;
+                    notes = EXCLUDED.notes
+                RETURNING id, domain, account_name, url, notes;
             """, (user_id, domain, account_name, encrypted_pwd, url, notes))
+            new_entry = cur.fetchone()
             conn.commit()
         except Exception as e:
             conn.rollback()
@@ -77,7 +79,16 @@ def add_vault_entry():
         finally:
             cur.close()
     
-    return jsonify({"message": "Vault entry added/updated!"}), 201
+    return jsonify({
+        "message": "Vault entry added/updated!",
+        "entry": {
+            "id": new_entry[0],
+            "domain": new_entry[1],
+            "account_name": new_entry[2],
+            "url": new_entry[3],
+            "notes": new_entry[4],
+        },
+    }), 201
 
 
 @vault_bp.route('/get-vault', methods=['GET'])
