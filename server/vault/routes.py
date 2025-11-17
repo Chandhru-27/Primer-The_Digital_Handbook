@@ -94,16 +94,17 @@ def add_vault_entry():
 @vault_bp.route('/get-vault', methods=['GET'])
 @jwt_required()
 def get_vault_entries():
-    """List all vault domains (no passwords shown)"""
+    """List all vault domains"""
     user_id = get_jwt_identity()
 
     with get_db_connection() as conn:
         cur = conn.cursor()
         try:
             cur.execute("""
-                SELECT id, domain, account_name, url, notes FROM vault WHERE user_id=%s
+                SELECT id, domain, account_name, pin_or_password, url, notes FROM vault WHERE user_id=%s
             """, (user_id,))
-            entries = [{"id": r[0], "domain": r[1], "account_name": r[2], "url": r[3], "notes": r[4]} for r in cur.fetchall()]
+            entries = [{"id": r[0], "domain": r[1], "account_name": r[2], "pin_or_password" : fernet.decrypt(r[3].encode()).decode(), "url": r[4], "notes": r[5]} for r in cur.fetchall()]
+
         except Exception as e:
             conn.rollback()
             return jsonify({"error": str(e)}), 400
