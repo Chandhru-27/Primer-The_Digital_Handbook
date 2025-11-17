@@ -110,12 +110,29 @@ export default function Profile() {
     try {
       const updateData: Partial<UserProfile> = {};
 
-      if (basicInfo.name) updateData.full_name = basicInfo.name;
-      if (basicInfo.email) updateData.email = basicInfo.email;
-      if (basicInfo.phone) updateData.phone = basicInfo.phone;
-      if (basicInfo.age) updateData.age = parseInt(basicInfo.age);
-      updateData.gender = basicInfo.gender || null;
-      if (basicInfo.address) updateData.address = basicInfo.address;
+      // Compare against current `user` to avoid no-op updates
+      if (user) {
+        if (basicInfo.name && basicInfo.name !== user.full_name)
+          updateData.full_name = basicInfo.name;
+        if (basicInfo.email && basicInfo.email !== user.email)
+          updateData.email = basicInfo.email;
+        if (basicInfo.phone && basicInfo.phone !== user.phone)
+          updateData.phone = basicInfo.phone;
+        if (basicInfo.age && parseInt(basicInfo.age) !== user.age)
+          updateData.age = parseInt(basicInfo.age);
+        if ((basicInfo.gender || null) !== (user.gender || null))
+          updateData.gender = basicInfo.gender || null;
+        if (basicInfo.address && basicInfo.address !== user.address)
+          updateData.address = basicInfo.address;
+      } else {
+        // Fallback: same behavior as before if user object missing
+        if (basicInfo.name) updateData.full_name = basicInfo.name;
+        if (basicInfo.email) updateData.email = basicInfo.email;
+        if (basicInfo.phone) updateData.phone = basicInfo.phone;
+        if (basicInfo.age) updateData.age = parseInt(basicInfo.age);
+        updateData.gender = basicInfo.gender || null;
+        if (basicInfo.address) updateData.address = basicInfo.address;
+      }
 
       if (Object.keys(updateData).length > 0) {
         await updateProfile(updateData);
@@ -123,6 +140,8 @@ export default function Profile() {
           title: "Profile updated",
           description: "Your basic information has been saved successfully.",
         });
+      } else {
+        toast({ title: "No changes", description: "No updates to save." });
       }
 
       setIsEditingBasic(false);
@@ -139,9 +158,17 @@ export default function Profile() {
 
   const handleSaveHandbook = async () => {
     try {
-      const updatePromises = [];
+      const updatePromises: Promise<any>[] = [];
 
-      if (handbookInfo.biography) {
+      // Build a map of current handbook values to compare
+      const currentMap = Object.fromEntries(
+        (handbookData || []).map((d: HandbookEntry) => [
+          d.field_name,
+          d.field_value,
+        ])
+      );
+
+      if (handbookInfo.biography !== (currentMap.biography || "")) {
         updatePromises.push(
           updateHndbook({
             field_name: "biography",
@@ -149,7 +176,7 @@ export default function Profile() {
           })
         );
       }
-      if (handbookInfo.hobbies) {
+      if (handbookInfo.hobbies !== (currentMap.hobbies || "")) {
         updatePromises.push(
           updateHndbook({
             field_name: "hobbies",
@@ -157,25 +184,38 @@ export default function Profile() {
           })
         );
       }
-      if (handbookInfo.skills) {
-        updateHndbook({
-          field_name: "skills",
-          field_value: handbookInfo.skills,
-        });
+      if (handbookInfo.skills !== (currentMap.skills || "")) {
+        updatePromises.push(
+          updateHndbook({
+            field_name: "skills",
+            field_value: handbookInfo.skills,
+          })
+        );
       }
-      if (handbookInfo.goals) {
-        updateHndbook({ field_name: "goals", field_value: handbookInfo.goals });
+      if (handbookInfo.goals !== (currentMap.goals || "")) {
+        updatePromises.push(
+          updateHndbook({
+            field_name: "goals",
+            field_value: handbookInfo.goals,
+          })
+        );
       }
-      if (handbookInfo.notes) {
-        updateHndbook({ field_name: "notes", field_value: handbookInfo.notes });
+      if (handbookInfo.notes !== (currentMap.notes || "")) {
+        updatePromises.push(
+          updateHndbook({
+            field_name: "notes",
+            field_value: handbookInfo.notes,
+          })
+        );
       }
 
       if (updatePromises.length === 0) {
         toast({
           title: "No changes",
-          description: "Please add some content.",
+          description: "No updates to save.",
           variant: "destructive",
         });
+        return;
       }
 
       await Promise.all(updatePromises);

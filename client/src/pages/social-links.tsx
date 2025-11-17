@@ -79,7 +79,7 @@ export default function SocialLinks() {
     username: "",
     url: "",
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const { data: links = [], isLoading: socialLoading } = useSocialLinks();
   const addLink = useAddSocial();
@@ -96,6 +96,7 @@ export default function SocialLinks() {
       return;
     }
 
+    setLoading(true);
     addLink.mutate(
       {
         platform_name: formData.platform,
@@ -106,12 +107,14 @@ export default function SocialLinks() {
         onSuccess: () => {
           setFormData({ platform: "", username: "", url: "" });
           setIsAddDialogOpen(false);
+          setLoading(false);
           toast({
             title: "Link added",
             description: `Your ${formData.platform} profile has been added successfully.`,
           });
         },
         onError: () => {
+          setLoading(false);
           toast({
             title: "Error",
             description: "Failed to add social link. Please try again.",
@@ -137,6 +140,25 @@ export default function SocialLinks() {
   };
 
   const handleUpdate = async (id: number) => {
+    // NO-OP CHECK: avoid calling update endpoint when nothing changed.
+    const original = links.find((l) => l.id === id);
+    if (original) {
+      const platformUnchanged = original.platform_name === formData.platform;
+      const usernameUnchanged =
+        (original.username || "") === (formData.username || "");
+      const urlUnchanged =
+        (original.profile_link || "") === (formData.url || "");
+
+      if (platformUnchanged && usernameUnchanged && urlUnchanged) {
+        setEditingId(null);
+        setFormData({ platform: "", username: "", url: "" });
+        toast({ title: "No changes", description: "No updates to save." });
+        return;
+      }
+    }
+
+    setLoading(true);
+
     updateLink.mutate(
       {
         link_id: id,
@@ -148,12 +170,14 @@ export default function SocialLinks() {
         onSuccess: () => {
           setEditingId(null);
           setFormData({ platform: "", username: "", url: "" });
+          setLoading(false);
           toast({
             title: "Link updated",
             description: "Your social link has been updated successfully.",
           });
         },
         onError: () => {
+          setLoading(false);
           toast({
             title: "Error",
             description: "Failed to update social link. Please try again.",
