@@ -76,7 +76,7 @@ export default function Dashboard() {
               </Avatar>
 
               <div className="flex-1 text-center md:text-start">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-2 justify-center md:justify-start">
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                     Welcome back, {userName}!
                   </h1>
