@@ -31,13 +31,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "../lib/hooks/use-toast";
-import { checkLoginStatus } from "@/lib/api/auth";
 import {
-  getUserProfile,
   UserProfile,
-  updateUserProfile,
-  getHandbookInfo,
-  updateHandbookField,
   HandbookEntry,
 } from "@/lib/api/user";
 import {
@@ -54,9 +49,6 @@ export default function Profile() {
 
   const { data: user, isLoading: userLoading } = useUserProfile();
   const { data: handbookData, isLoading: handbookLoading } = useFetchHandbook();
-
-  // const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const [basicInfo, setBasicInfo] = useState({
     name: "",
@@ -110,7 +102,6 @@ export default function Profile() {
     try {
       const updateData: Partial<UserProfile> = {};
 
-      // Compare against current `user` to avoid no-op updates
       if (user) {
         if (basicInfo.name && basicInfo.name !== user.full_name)
           updateData.full_name = basicInfo.name;

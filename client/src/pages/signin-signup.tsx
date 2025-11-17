@@ -27,13 +27,11 @@ export default function SigninSignup() {
   const [Location, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Signin form state
   const [signinForm, setSigninForm] = useState({
     username: "",
     password: "",
   });
 
-  // Signup form state
   const [signupForm, setSignupForm] = useState({
     username: "",
     email: "",
@@ -60,7 +58,6 @@ export default function SigninSignup() {
           title: "Welcome back!",
           description: response.message,
         });
-        // Trigger sidebar re-render by dispatching a custom event
         window.dispatchEvent(new Event("auth-change"));
         setLocation("/");
       }
@@ -78,7 +75,6 @@ export default function SigninSignup() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate vault PINs match
     if (signupForm.vaultPin !== signupForm.confirmVaultPin) {
       toast({
         title: "Validation Error",
@@ -116,8 +112,6 @@ export default function SigninSignup() {
         });
         return;
       }
-
-      // Automatically sign in after successful signup
       const signinResponse = await signIn({
         username: signupForm.username,
         password: signupForm.password,
@@ -132,14 +126,12 @@ export default function SigninSignup() {
         return;
       }
 
-      // Now that we're signed in, set the vault password
       try {
         await setVaultPassword(signupForm.vaultPin);
         toast({
           title: "Account created!",
           description: "Your account and vault have been set up successfully.",
         });
-        // Trigger sidebar re-render
         window.dispatchEvent(new Event("auth-change"));
         setLocation("/");
       } catch (vaultError) {

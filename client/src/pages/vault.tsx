@@ -34,9 +34,6 @@ import {
 } from "lucide-react";
 import { useToast } from "../lib/hooks/use-toast";
 import { Alert, AlertDescription } from "../components/ui/alert";
-// `viewVaultEntry` is no longer used. Backend `get-vault` now returns the
-// decrypted `pin_or_password` so we can reuse the cached bulk entries.
-// import { viewVaultEntry } from "@/lib/api/vault";
 import type { VaultEntry as IVaultEntry } from "@/lib/api/vault";
 import {
   useAddVaultEntry,
@@ -122,17 +119,9 @@ export default function Vault() {
 
   useEffect(() => {
     if (!vaultEntries) return;
-    // AI FIX HERE: DO NOT REMOVE UNTIL UNDERSTOOD
-    // Preserve any previously revealed (decrypted) passwords in local state.
-    // When React Query returns cached `vaultEntries` they intentionally omit
-    // the decrypted password for security. If the user has already viewed
-    // a password we keep it in `credentials` so opening the edit form doesn't
-    // require another backend call.
     setCredentials((prevCreds) =>
       vaultEntries.map((e: IVaultEntry) => {
         const existing = prevCreds.find((c) => c.id === e.id);
-        // Prefer an already revealed password, then the server-provided
-        // `pin_or_password` (backend now includes it), otherwise mask it.
         const password =
           existing && existing.password && existing.password !== "••••••••"
             ? existing.password
@@ -151,9 +140,6 @@ export default function Vault() {
   }, [vaultEntries]);
 
   const handleViewPassword = (id: number) => {
-    // AI FIX HERE: DO NOT REMOVE UNTIL UNDERSTOOD    
-    // Use the cached `vaultEntries` returned by get-vault which now includes
-    // `pin_or_password`. This avoids calling the /vault/view endpoint.
     const entry = vaultEntries.find((e: IVaultEntry) => e.id === id);
     if (entry) {
       setCredentials((prev) =>
@@ -258,11 +244,6 @@ export default function Vault() {
   const handleUpdate = async (id: number) => {
     setIsLoading(true);
     try {
-      // AI FIX HERE: DO NOT REMOVE UNTIL UNDERSTOOD
-      // SIMPLE CHANGE CHECK: if no fields changed, skip calling the update
-      // endpoint to avoid unnecessary backend traffic. We treat an empty
-      // `formData.password` as "no change to password" (the edit handler
-      // sets it to empty when the password was masked).
       const original = credentials.find((c) => c.id === id);
       if (original) {
         const domainUnchanged = original.siteName === formData.siteName;
@@ -280,7 +261,6 @@ export default function Vault() {
           notesUnchanged &&
           passwordUnchanged
         ) {
-          // nothing changed — close editor and reset state
           setEditingId(null);
           setFormData({
             siteName: "",
@@ -300,8 +280,6 @@ export default function Vault() {
           updates: {
             domain: formData.siteName,
             account_name: formData.username,
-            // If password is empty, don't send it so the backend can keep
-            // the existing one. We pass undefined in that case.
             pin_or_password: formData.password || undefined,
             url: formData.url || undefined,
             notes: formData.notes || "",

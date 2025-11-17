@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -44,10 +44,6 @@ import {
 } from "react-icons/si";
 import { useToast } from "../lib/hooks/use-toast";
 import {
-  getSocialLinks,
-  addSocialLink,
-  updateSocialLink,
-  deleteSocialLink,
   SocialLink,
 } from "../lib/api/user";
 import {
@@ -140,7 +136,6 @@ export default function SocialLinks() {
   };
 
   const handleUpdate = async (id: number) => {
-    // NO-OP CHECK: avoid calling update endpoint when nothing changed.
     const original = links.find((l) => l.id === id);
     if (original) {
       const platformUnchanged = original.platform_name === formData.platform;
