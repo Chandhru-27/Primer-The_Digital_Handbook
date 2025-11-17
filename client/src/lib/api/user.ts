@@ -1,6 +1,4 @@
 import api, { handleAxiosError } from "./axios";
-import { API_BASE_URL } from "./constants";
-import { getVaultEntries } from "./vault";
 
 export interface ErrorResponse {
   message: string;
@@ -97,7 +95,6 @@ export const addSocialLink = async (
   profileLink: string
 ) => {
   try {
-    // Normalize URL - add https:// if missing
     if (
       profileLink &&
       !profileLink.startsWith("http://") &&
@@ -124,7 +121,6 @@ export const updateSocialLink = async (
   profileLink: string
 ) => {
   try {
-    // Normalize URL - add https:// if missing
     if (
       profileLink &&
       !profileLink.startsWith("http://") &&
