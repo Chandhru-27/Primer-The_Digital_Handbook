@@ -23,10 +23,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import { ThemeToggle } from "../components/theme-toggle";
-import { UserProfile, getUserProfile } from "../lib/api/user";
-import { checkLoginStatus, logOutUser } from "../lib/api/auth";
-import { useEffect, useState } from "react";
 import { useToast } from "../lib/hooks/use-toast";
+import { useAuth, useUserProfile, useLogout } from "../lib/hooks/app-hooks";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function AppSidebar() {
   const menuItems = [
@@ -52,45 +51,12 @@ export function AppSidebar() {
     },
   ];
 
-  const [user, setUser] = useState<UserProfile>();
   const [location] = useLocation();
-  const [loggedIn, setLoggedIn] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const isLoggedIn = await checkLoginStatus();
-      setLoggedIn(isLoggedIn);
-
-      if (isLoggedIn) {
-        const userData = await getUserProfile();
-        setUser(userData);
-        console.log(userData);
-      } else {
-        setUser(undefined);
-      }
-    };
-
-    checkAuth();
-
-    // Listen for storage changes (in case login happens in another tab)
-    const handleStorageChange = () => {
-      checkAuth();
-    };
-
-    // Listen for auth changes (login/logout events)
-    const handleAuthChange = () => {
-      checkAuth();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('auth-change', handleAuthChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('auth-change', handleAuthChange);
-    };
-  }, []);
+  const { data: loggedIn } = useAuth();
+  const { data: user } = useUserProfile(!!loggedIn);
+  const logout = useLogout();
+  const queryClient = useQueryClient();
 
   const userName = user?.username || "Username";
   const userInitials = userName
@@ -154,14 +120,20 @@ export function AppSidebar() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  logOutUser();
-                  setUser(undefined);
-                  setLoggedIn(false);
-                  toast({
-                    title: "Logged out",
-                    description: "You have been successfully logged out.",
+                  logout.mutateAsync().then(() => {
+                    queryClient.invalidateQueries({ queryKey: ["auth"] });
+                    queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+                    queryClient.invalidateQueries({ queryKey: ["vaultEntries"] });
+                    queryClient.invalidateQueries({queryKey: ["socialLinks"]});
+                    queryClient.invalidateQueries({queryKey: ["dashboard"]});
+                    queryClient.invalidateQueries({queryKey: ["handbook"]});
+                    toast({
+                      title: "Logged out",
+                      description: "You have been successfully logged out.",
+                    });
+                    window.dispatchEvent(new Event('auth-change'));
+                    window.location.reload();
                   });
-                  window.dispatchEvent(new Event('auth-change'));
                 }}
                 className="text-muted-foreground hover:text-foreground"
               >

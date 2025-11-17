@@ -19,7 +19,7 @@ import {
   VaultEntry,
   VaultEntryInput,
 } from "../api/vault";
-import { unlockVault } from "../api/auth";
+import { checkLoginStatus, signIn, signUp, logOutUser, unlockVault } from "../api/auth";
 
 export function useDashboard() {
   return useQuery({
@@ -28,10 +28,38 @@ export function useDashboard() {
   });
 }
 
-export function useUserProfile() {
+export function useUserProfile(enabled = true) {
   return useQuery({
     queryKey: ["userProfile"],
     queryFn: getUserProfile,
+    enabled,
+  });
+}
+
+export function useAuth() {
+  return useQuery({
+    queryKey: ["auth"],
+    queryFn: checkLoginStatus,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useSignIn() {
+  return useMutation({
+    mutationFn: signIn,
+  });
+}
+
+export function useSignUp() {
+  return useMutation({
+    mutationFn: signUp,
+  });
+}
+
+export function useLogout() {
+  return useMutation({
+    mutationFn: logOutUser,
   });
 }
 

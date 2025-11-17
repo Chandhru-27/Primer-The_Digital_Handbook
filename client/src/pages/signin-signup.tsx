@@ -18,14 +18,18 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import { useToast } from "../lib/hooks/use-toast";
-import { signUp, signIn } from "../lib/api/auth";
 import { setVaultPassword } from "../lib/api/auth";
+import { useSignIn, useSignUp } from "../lib/hooks/app-hooks";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SigninSignup() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [Location, setLocation] = useLocation();
   const { toast } = useToast();
+  const signinMutation = useSignIn();
+  const signupMutation = useSignUp();
+  const queryClient = useQueryClient();
 
   const [signinForm, setSigninForm] = useState({
     username: "",
@@ -45,7 +49,7 @@ export default function SigninSignup() {
     setIsLoading(true);
 
     try {
-      const response = await signIn(signinForm);
+      const response = await signinMutation.mutateAsync(signinForm);
 
       if (response.error) {
         toast({
@@ -58,6 +62,8 @@ export default function SigninSignup() {
           title: "Welcome back!",
           description: response.message,
         });
+        queryClient.invalidateQueries({ queryKey: ["auth"] });
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] });
         window.dispatchEvent(new Event("auth-change"));
         setLocation("/");
       }
@@ -102,7 +108,7 @@ export default function SigninSignup() {
         password: signupForm.password,
       };
 
-      const signupResponse = await signUp(signupData);
+      const signupResponse = await signupMutation.mutateAsync(signupData);
 
       if (signupResponse.error) {
         toast({
@@ -112,7 +118,7 @@ export default function SigninSignup() {
         });
         return;
       }
-      const signinResponse = await signIn({
+      const signinResponse = await signinMutation.mutateAsync({
         username: signupForm.username,
         password: signupForm.password,
       });
@@ -132,6 +138,8 @@ export default function SigninSignup() {
           title: "Account created!",
           description: "Your account and vault have been set up successfully.",
         });
+        queryClient.invalidateQueries({ queryKey: ["auth"] });
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] });
         window.dispatchEvent(new Event("auth-change"));
         setLocation("/");
       } catch (vaultError) {
