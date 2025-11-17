@@ -73,5 +73,9 @@ export const unlockVault = async (password: string) => {
     return response.data;
   } catch (error) {
     handleAxiosError(error);
+    // Re-throw so callers (and react-query mutations) receive a rejection
+    // and can invoke error handlers. Previously we swallowed the error
+    // which caused the UI to treat failed unlocks as successes.
+    throw error;
   }
 };
