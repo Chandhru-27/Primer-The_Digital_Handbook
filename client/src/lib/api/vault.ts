@@ -21,7 +21,7 @@ export interface VaultEntryInput {
 export const addVaultEntry = async (entry: VaultEntryInput) => {
   try {
     const response = await api.post("/vault/add", entry);
-    return response.data;
+    return response.data.entry || response.data;
   } catch (error) {
     handleAxiosError(error);
     throw error;

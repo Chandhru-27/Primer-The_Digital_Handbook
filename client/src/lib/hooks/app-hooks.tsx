@@ -11,7 +11,15 @@ import {
   updateSocialLink,
   updateUserProfile,
 } from "../api/user";
-import { getVaultEntries } from "../api/vault";
+import {
+  addVaultEntry,
+  getVaultEntries,
+  deleteVaultEntry,
+  updateVaultEntry,
+  VaultEntry,
+  VaultEntryInput,
+} from "../api/vault";
+import { unlockVault } from "../api/auth";
 
 export function useDashboard() {
   return useQuery({
@@ -36,10 +44,11 @@ export function useSocialLinks() {
   });
 }
 
-export function useVaultEntries() {
+export function useVaultEntries(enabled: boolean) {
   return useQuery({
     queryKey: ["vaultEntries"],
     queryFn: getVaultEntries,
+    enabled: enabled,
     staleTime: 300000,
     refetchOnWindowFocus: false,
   });
@@ -122,6 +131,145 @@ export function useDeleteSocial() {
       deleteSocialLink(data.linkId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["socialLinks"] });
+    },
+  });
+}
+
+export function useUnlockVault() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { password: string }) =>
+      unlockVault(data.password),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vaultEntries"] });
+    },
+  });
+}
+
+export function useAddVaultEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    VaultEntry,
+    unknown,
+    VaultEntryInput,
+    { previousEntries?: VaultEntry[]; tempId?: number }
+  >({
+    mutationFn: (data: VaultEntryInput) => addVaultEntry(data),
+
+    onMutate: async (newEntry) => {
+      await queryClient.cancelQueries({ queryKey: ["vaultEntries"] });
+
+      const previousEntries = queryClient.getQueryData<VaultEntry[]>([
+        "vaultEntries",
+      ]);
+
+      const tempId = Date.now() * -1; 
+      const tempEntry: VaultEntry = {
+        id: tempId,
+        domain: newEntry.domain,
+        account_name: newEntry.account_name,
+        url: newEntry.url,
+        notes: newEntry.notes || null,
+      };
+
+      queryClient.setQueryData<VaultEntry[]>(["vaultEntries"], (old = []) => [
+        ...(old || []),
+        tempEntry,
+      ]);
+
+      return { previousEntries, tempId };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (context?.previousEntries) {
+        queryClient.setQueryData(["vaultEntries"], context.previousEntries);
+      }
+    },
+
+    onSuccess: (createdEntry, _vars, context) => {
+      if (context?.tempId) {
+        queryClient.setQueryData<VaultEntry[]>(["vaultEntries"], (old = []) =>
+          (old || []).map((entry) =>
+            entry.id === context.tempId ? createdEntry : entry
+          )
+        );
+      } else {
+        queryClient.setQueryData<VaultEntry[]>(["vaultEntries"], (old = []) => [
+          ...(old || []),
+          createdEntry,
+        ]);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["vaultEntries"] });
+    },
+  });
+}
+
+export function useUpdateVaultEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: number;
+      updates: Partial<VaultEntryInput>;
+    }) => updateVaultEntry(id, updates),
+
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ["vaultEntries"] });
+
+      const previousEntries = queryClient.getQueryData<VaultEntry[]>([
+        "vaultEntries",
+      ]);
+
+      queryClient.setQueryData<VaultEntry[]>(["vaultEntries"], (old = []) =>
+        old.map((entry) => (entry.id === id ? { ...entry, ...updates } : entry))
+      );
+
+      return { previousEntries };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (context?.previousEntries) {
+        queryClient.setQueryData(["vaultEntries"], context.previousEntries);
+      }
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["vaultEntries"] });
+    },
+  });
+}
+
+export function useDeleteVaultEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: number }) => {
+      return deleteVaultEntry(id);
+    },
+    onMutate: async ({ id }: { id: number }) => {
+      await queryClient.cancelQueries({ queryKey: ["vaultEntries"] });
+
+      const previousEntries = queryClient.getQueryData<VaultEntry[]>([
+        "vaultEntries",
+      ]);
+
+      queryClient.setQueryData<VaultEntry[]>(["vaultEntries"], (old = []) =>
+        (old || []).filter((entry) => entry.id !== id)
+      );
+
+      return { previousEntries };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousEntries) {
+        queryClient.setQueryData(["vaultEntries"], context.previousEntries);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["vaultEntries"] });
     },
   });
 }

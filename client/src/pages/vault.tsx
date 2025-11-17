@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -31,26 +31,27 @@ import {
   X,
   AlertCircle,
   Loader2,
-  UnlockIcon,
 } from "lucide-react";
 import { useToast } from "../lib/hooks/use-toast";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { unlockVault, setVaultPassword } from "@/lib/api/auth";
-import {
-  addVaultEntry,
-  deleteVaultEntry,
-  getVaultEntries,
-  updateVaultEntry,
-  viewVaultEntry,
-} from "@/lib/api/vault";
+// `viewVaultEntry` is no longer used. Backend `get-vault` now returns the
+// decrypted `pin_or_password` so we can reuse the cached bulk entries.
+// import { viewVaultEntry } from "@/lib/api/vault";
 import type { VaultEntry as IVaultEntry } from "@/lib/api/vault";
+import {
+  useAddVaultEntry,
+  useUnlockVault,
+  useVaultEntries,
+  useUpdateVaultEntry,
+  useDeleteVaultEntry,
+} from "@/lib/hooks/app-hooks";
+import { useQueryClient } from "@tanstack/react-query";
 
-// Define credential type for local state (map backend fields)
 interface VaultCredential {
   id: number;
-  siteName: string; // maps to domain
-  username: string; // maps to account_name
-  password: string; // pin_or_password (masked until viewed)
+  siteName: string;
+  username: string;
+  password: string;
   url?: string;
   notes?: string;
 }
@@ -58,17 +59,25 @@ interface VaultCredential {
 export default function Vault() {
   const { toast } = useToast();
 
-  // Vault unlock state
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingEntries, setLoadingEntries] = useState(false);
 
-  // Local credential storage
+  const [pinError, setPinError] = useState(false);
+
+  const unlockVaultMutation = useUnlockVault();
+
+  const { data: vaultEntries = [], isLoading: vaultLoading } =
+    useVaultEntries(isUnlocked);
+
+  const addEntry = useAddVaultEntry();
+  const updateEntry = useUpdateVaultEntry();
+  const deleteEntry = useDeleteVaultEntry();
+  const queryClient = useQueryClient();
+
+  const [isLoading, setIsLoading] = useState(false);
+
   const [credentials, setCredentials] = useState<VaultCredential[]>([]);
 
-  // Local form + dialog states
   const [visiblePasswords, setVisiblePasswords] = useState<Set<number>>(
     new Set()
   );
@@ -82,95 +91,97 @@ export default function Vault() {
     notes: "",
   });
 
-  // Unlock vault
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    try {
-      const response = await unlockVault(pin);
-      if (response) {
-        setIsUnlocked(true);
-        setPinError(false);
-        // load the user's vault entries after unlocking
-        await loadVaultEntries();
-        toast({
-          title: "Vault unlocked",
-          description: "Welcome to your secure vault.",
-        });
-      } else {
-        setPinError(true);
-        setPin("");
-        toast({
-          title: "Incorrect PIN",
-          description: "Please try again.",
-          variant: "destructive",
-        });
+    unlockVaultMutation.mutate(
+      {
+        password: pin,
+      },
+      {
+        onSuccess: () => {
+          setIsUnlocked(true);
+          setPinError(false);
+
+          toast({
+            title: "Vault unlocked",
+            description: "Welcome to your secure vault.",
+          });
+        },
+        onError: () => {
+          setPinError(true);
+          setPin("");
+          toast({
+            title: "Incorrect PIN",
+            description: "Please try again.",
+            variant: "destructive",
+          });
+        },
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to unlock vault",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    );
   };
 
-  // Load vault entries from backend (no sensitive data returned)
-  const loadVaultEntries = async () => {
-    setLoadingEntries(true);
-    try {
-      const entries = await getVaultEntries();
-      // map backend fields to local shape; mask passwords until viewed
-      setCredentials(
-        entries.map((e: IVaultEntry) => ({
+  useEffect(() => {
+    if (!vaultEntries) return;
+    // AI FIX HERE: DO NOT REMOVE UNTIL UNDERSTOOD
+    // Preserve any previously revealed (decrypted) passwords in local state.
+    // When React Query returns cached `vaultEntries` they intentionally omit
+    // the decrypted password for security. If the user has already viewed
+    // a password we keep it in `credentials` so opening the edit form doesn't
+    // require another backend call.
+    setCredentials((prevCreds) =>
+      vaultEntries.map((e: IVaultEntry) => {
+        const existing = prevCreds.find((c) => c.id === e.id);
+        // Prefer an already revealed password, then the server-provided
+        // `pin_or_password` (backend now includes it), otherwise mask it.
+        const password =
+          existing && existing.password && existing.password !== "••••••••"
+            ? existing.password
+            : e.pin_or_password ?? "••••••••";
+
+        return {
           id: e.id,
           siteName: e.domain,
           username: e.account_name,
-          password: "••••••••",
+          password,
           url: e.url,
           notes: e.notes || "",
-        }))
-      );
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to load vault entries",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingEntries(false);
-    }
-  };
+        };
+      })
+    );
+  }, [vaultEntries]);
 
-  // View a vault entry's password (requires vault password)
-  const handleViewPassword = async (id: number) => {
-    try {
-      const entry = await viewVaultEntry(id, pin);
+  const handleViewPassword = (id: number) => {
+    // AI FIX HERE: DO NOT REMOVE UNTIL UNDERSTOOD    
+    // Use the cached `vaultEntries` returned by get-vault which now includes
+    // `pin_or_password`. This avoids calling the /vault/view endpoint.
+    const entry = vaultEntries.find((e: IVaultEntry) => e.id === id);
+    if (entry) {
       setCredentials((prev) =>
         prev.map((c) =>
           c.id === id
-            ? {
-                ...c,
-                password: entry.pin_or_password,
-                url: entry.url || c.url,
-                notes: entry.notes || c.notes,
-              }
+            ? (() => {
+                const revealed =
+                  entry.pin_or_password ?? c.password ?? "••••••••";
+                return {
+                  ...c,
+                  password: revealed,
+                  url: entry.url || c.url,
+                  notes: entry.notes ?? c.notes,
+                };
+              })()
             : c
         )
       );
-    } catch (err) {
+    } else {
       toast({
-        title: "Error",
+        title: "Unavailable",
         description:
-          "Failed to view password. Please ensure your vault is unlocked and correct password entered.",
+          "Password not available in cache. Please unlock the vault or refresh entries.",
         variant: "destructive",
       });
     }
   };
 
-  // Toggle password visibility (shows/hides value; when showing, fetch if masked)
   const togglePasswordVisibility = async (id: number) => {
     setVisiblePasswords((prev) => {
       const newSet = new Set(prev);
@@ -184,13 +195,11 @@ export default function Vault() {
     }
   };
 
-  // Copy to clipboard
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copied!", description: `${label} copied to clipboard.` });
   };
 
-  // Add new credential
   const handleAdd = async () => {
     if (!formData.siteName || !formData.username || !formData.password) {
       toast({
@@ -200,40 +209,41 @@ export default function Vault() {
       });
       return;
     }
-    setIsLoading(true);
-    try {
-      await addVaultEntry({
+
+    addEntry.mutate(
+      {
         domain: formData.siteName,
         account_name: formData.username,
         pin_or_password: formData.password,
         url: formData.url || undefined,
         notes: formData.notes || "",
-      });
-      await loadVaultEntries();
-      setFormData({
-        siteName: "",
-        username: "",
-        password: "",
-        url: "",
-        notes: "",
-      });
-      setIsAddDialogOpen(false);
-      toast({
-        title: "Credential added",
-        description: `Credentials for ${formData.siteName} have been saved securely.`,
-      });
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to add credential",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+      },
+      {
+        onSuccess: () => {
+          setFormData({
+            siteName: "",
+            username: "",
+            password: "",
+            url: "",
+            notes: "",
+          });
+          setIsAddDialogOpen(false);
+          toast({
+            title: "Credential added",
+            description: `Credentials for ${formData.siteName} have been saved securely.`,
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to add credential",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
-  // Edit and update
   const handleEdit = (credential: VaultCredential) => {
     setEditingId(credential.id);
     setFormData({
@@ -248,26 +258,80 @@ export default function Vault() {
   const handleUpdate = async (id: number) => {
     setIsLoading(true);
     try {
-      await updateVaultEntry(id, {
-        domain: formData.siteName,
-        account_name: formData.username,
-        pin_or_password: formData.password,
-        url: formData.url || undefined,
-        notes: formData.notes || "",
-      });
-      await loadVaultEntries();
-      setEditingId(null);
-      setFormData({
-        siteName: "",
-        username: "",
-        password: "",
-        url: "",
-        notes: "",
-      });
-      toast({
-        title: "Credential updated",
-        description: "Your credentials have been updated successfully.",
-      });
+      // AI FIX HERE: DO NOT REMOVE UNTIL UNDERSTOOD
+      // SIMPLE CHANGE CHECK: if no fields changed, skip calling the update
+      // endpoint to avoid unnecessary backend traffic. We treat an empty
+      // `formData.password` as "no change to password" (the edit handler
+      // sets it to empty when the password was masked).
+      const original = credentials.find((c) => c.id === id);
+      if (original) {
+        const domainUnchanged = original.siteName === formData.siteName;
+        const usernameUnchanged = original.username === formData.username;
+        const urlUnchanged = (original.url || "") === (formData.url || "");
+        const notesUnchanged =
+          (original.notes || "") === (formData.notes || "");
+        const passwordUnchanged =
+          formData.password === "" || formData.password === original.password;
+
+        if (
+          domainUnchanged &&
+          usernameUnchanged &&
+          urlUnchanged &&
+          notesUnchanged &&
+          passwordUnchanged
+        ) {
+          // nothing changed — close editor and reset state
+          setEditingId(null);
+          setFormData({
+            siteName: "",
+            username: "",
+            password: "",
+            url: "",
+            notes: "",
+          });
+          setIsLoading(false);
+          toast({ title: "No changes", description: "No updates to save." });
+          return;
+        }
+      }
+      updateEntry.mutate(
+        {
+          id,
+          updates: {
+            domain: formData.siteName,
+            account_name: formData.username,
+            // If password is empty, don't send it so the backend can keep
+            // the existing one. We pass undefined in that case.
+            pin_or_password: formData.password || undefined,
+            url: formData.url || undefined,
+            notes: formData.notes || "",
+          },
+        },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["vaultEntries"] });
+            setEditingId(null);
+            setFormData({
+              siteName: "",
+              username: "",
+              password: "",
+              url: "",
+              notes: "",
+            });
+            toast({
+              title: "Credential updated",
+              description: "Your credentials have been updated successfully.",
+            });
+          },
+          onError: () => {
+            toast({
+              title: "Error",
+              description: "Failed to update credential",
+              variant: "destructive",
+            });
+          },
+        }
+      );
     } catch (err) {
       toast({
         title: "Error",
@@ -279,28 +343,31 @@ export default function Vault() {
     }
   };
 
-  // Delete
-  const handleDelete = async (id: number, siteName: string) => {
+  const handleDelete = (id: number, siteName: string) => {
     setIsLoading(true);
-    try {
-      await deleteVaultEntry(id);
-      setCredentials((prev) => prev.filter((c) => c.id !== id));
-      toast({
-        title: "Credential deleted",
-        description: `Credentials for ${siteName} have been removed.`,
-      });
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to delete credential",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    deleteEntry.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Credential deleted",
+            description: `Credentials for ${siteName} have been removed.`,
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description: "Failed to delete credential",
+            variant: "destructive",
+          });
+        },
+        onSettled: () => {
+          setIsLoading(false);
+        },
+      }
+    );
   };
 
-  // Cancel editing
   const handleCancel = () => {
     setEditingId(null);
     setFormData({
@@ -312,7 +379,14 @@ export default function Vault() {
     });
   };
 
-  // Lock vault
+  if (vaultLoading || isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (!isUnlocked) {
     return (
       <div className="h-full flex items-center justify-center p-6">
