@@ -78,7 +78,7 @@ export default function Dashboard() {
               <div className="flex-1 text-center md:text-start">
                 <div className="flex items-center gap-3 mb-2 justify-center md:justify-start">
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                    Welcome back, {userName}!
+                    Welcome back, {userName ?? "User"}!
                   </h1>
                 </div>
 
