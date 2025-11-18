@@ -10,26 +10,49 @@ load_dotenv()
 postgreSQL_pool = None
 
 def initialize_connection_pool():
-    """Create connection pool in a global pool variable"""
+    """
+    Create connection pool.
+    Priority 1: DATABASE_URL (Production/Render/Supabase Pooler)
+    Priority 2: Individual Params (Local Development)
+    """
     global postgreSQL_pool
+    
+    ssl_config = "require" if os.getenv("FLASK_ENV") == "production" else "disable"
+
+    pool_kwargs = {
+        "minconn": 1,
+        "maxconn": 20,
+        "sslmode": ssl_config
+    }
+
+    if os.getenv('DATABASE_URL'):
+        print(f"Initializing pool using DATABASE_URL (SSL: {ssl_config})...")
+        pool_kwargs["dsn"] = os.getenv('DATABASE_URL')
+    
+    elif os.getenv('PG_HOST'):
+        print(f"Initializing pool using PG_HOST variables (SSL: {ssl_config})...")
+        pool_kwargs["host"] = os.getenv('PG_HOST')
+        pool_kwargs["database"] = os.getenv('PG_DB')
+        pool_kwargs["user"] = os.getenv('PG_USER')
+        pool_kwargs["password"] = os.getenv('PG_PASSWORD')
+        pool_kwargs["port"] = os.getenv('PG_PORT')
+    
+    else:
+        print("CRITICAL ERROR: No database configuration found in environment variables.")
+        return
+
     try:
-        postgreSQL_pool = pool.ThreadedConnectionPool(
-            minconn=1,
-            maxconn=20,
-            host=os.getenv('PG_HOST'),
-            database=os.getenv('PG_DB'),
-            user=os.getenv('PG_USER'),
-            password=os.getenv('PG_PASSWORD'),
-            port=os.getenv('PG_PORT'),
-            sslmode= "require" if os.getenv("FLASK_ENV") == "production" else "disable"
-        )
+        postgreSQL_pool = pool.ThreadedConnectionPool(**pool_kwargs)
         print("Connection pool created successfully")
     except psycopg2.Error as e:
         print(f"Error initializing connection pool: {e}")
 
 @contextmanager
 def get_db_connection():
-    """Context manager for database connections"""
+    """Context manager for database connections with safety check"""
+    if postgreSQL_pool is None:
+        raise RuntimeError("Database connection pool is not initialized.")
+
     conn = postgreSQL_pool.getconn()
     try:
         yield conn
@@ -38,15 +61,18 @@ def get_db_connection():
 
 def initialize_database_and_create_tables():
     """Create all tables on startup"""
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        try:
-            for create_table in SCHEMA_LIST:
-                cur.execute(create_table)
-            conn.commit()
-            print("All tables created successfully or already exists")
-        except psycopg2.Error as e:
-            print(f"Database error: {e}")
-            conn.rollback()
-        finally:
-            cur.close()
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            try:
+                for create_table in SCHEMA_LIST:
+                    cur.execute(create_table)
+                conn.commit()
+                print("Tables check completed.")
+            except psycopg2.Error as e:
+                print(f"Database Schema Error: {e}")
+                conn.rollback()
+            finally:
+                cur.close()
+    except RuntimeError as e:
+        print(f"Skipping table creation: {e}")
