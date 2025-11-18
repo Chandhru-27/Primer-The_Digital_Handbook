@@ -423,7 +423,7 @@ export default function Vault() {
   return (
     <div className="h-full overflow-auto">
       <div className="mx-auto max-w-6xl px-6 py-8 md:px-8 md:py-12">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col md:flex-row gap-4 md:gap-0 items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
               <Shield className="h-8 w-8 text-primary" />
@@ -696,47 +696,41 @@ export default function Vault() {
                               >
                                 <Copy className="h-3 w-3" />
                               </Button>
-                              <a
-                                href={credential.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:text-primary/80"
-                              >
-                                Visit site
-                              </a>
                             </div>
                           </div>
                         )}
 
-                        {credential.notes && (
-                          <div className="md:col-span-9">
-                            <Label className="text-xs text-muted-foreground mb-1 block">
-                              Notes
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              {credential.notes}
-                            </p>
-                          </div>
-                        )}
+                        {/* <div className="flex justify-between "> */}
+                           
+                            <div className="md:col-span-9">
+                              <Label className="text-xs text-muted-foreground mb-1 block">
+                                Notes
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                {credential.notes ? credential.notes : "No notes configured yet"}
+                              </p>
+                            </div>
+                          
 
-                        <div className="md:col-span-3 flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(credential)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              handleDelete(credential.id, credential.siteName)
-                            }
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                          <div className="md:col-span-3 flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(credential)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                handleDelete(credential.id, credential.siteName)
+                              }
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        {/* </div> */}
                       </div>
                     )}
                   </CardContent>
