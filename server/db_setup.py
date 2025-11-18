@@ -25,12 +25,9 @@ def initialize_connection_pool():
         "maxconn": 20,
     }
 
-    # --- HANDLE DATABASE_URL (RENDER/SUPABASE) PATH ---
     if os.getenv('DATABASE_URL'):
         database_url = os.getenv('DATABASE_URL')
         
-        # 1. Append sslmode to the DSN string as a query parameter (?param=value)
-        # This prevents the "duplicate SASL authentication" keyword conflict.
         if '?' in database_url:
             final_dsn = f"{database_url}&sslmode={ssl_config}"
         else:
@@ -38,19 +35,15 @@ def initialize_connection_pool():
             
         print(f"Initializing pool using DSN (SSL: {ssl_config})...")
         pool_kwargs["dsn"] = final_dsn
-        
-        # IMPORTANT: Do NOT set pool_kwargs["sslmode"] here.
-    
-    # --- HANDLE INDIVIDUAL PARAMETERS (LOCAL DEV) PATH ---
+
     elif os.getenv('PG_HOST'):
         print(f"Initializing pool using PG_HOST variables (SSL: {ssl_config})...")
-        # For individual params, we pass sslmode as a standard keyword argument
         pool_kwargs["host"] = os.getenv('PG_HOST')
         pool_kwargs["database"] = os.getenv('PG_DB')
         pool_kwargs["user"] = os.getenv('PG_USER')
         pool_kwargs["password"] = os.getenv('PG_PASSWORD')
         pool_kwargs["port"] = os.getenv('PG_PORT')
-        pool_kwargs["sslmode"] = ssl_config  # Only set keyword argument here
+        pool_kwargs["sslmode"] = ssl_config  
     
     else:
         print("CRITICAL ERROR: No database configuration found in environment variables.")
