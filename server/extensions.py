@@ -16,4 +16,5 @@ fernet = Fernet(os.getenv('FERNET_KEY'))
 # Global rate limiter config
 limiter = Limiter(
     key_func=get_remote_address,
+    default_limits=["15 per minute"],
 )

@@ -20,12 +20,10 @@ def create_app():
     # Global JWT manager instance
     jwt = JWTManager(app)
 
-    # TODO: Enable rate limiter
     # Global config for rate limiter
-    # limiter.init_app(app=app)
+    limiter.init_app(app=app)
 
     # CORS config for endpoint access
-    # Use configured methods list (not a literal string) and allow headers from config
     CORS(
         app,
         origins=app.config["CORS_ORIGINS"],
@@ -34,7 +32,7 @@ def create_app():
         methods=app.config.get("CORS_METHODS", ["GET", "POST", "OPTIONS"]),
     )
     
-    # Import and register blueprints here to avoids circular imports
+    # Import and register blueprints here to avoid circular imports
     from auth.routes import auth_bp
     from personal_info.routes import personal_bp
     from social_links.routes import social_bp
