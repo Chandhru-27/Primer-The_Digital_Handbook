@@ -20,28 +20,35 @@ import {
   VaultEntryInput,
 } from "../api/vault";
 import { checkLoginStatus, signIn, signUp, logOutUser, unlockVault } from "../api/auth";
+import { useAuthForContext } from "../auth/auth-context";
+
 
 export function useDashboard() {
+  const {isLoggedIn} = useAuthForContext();
   return useQuery({
     queryKey: ["dashboard"],
     queryFn: getDashboard,
+    enabled: isLoggedIn,
   });
 }
 
 export function useUserProfile(enabled = true) {
+  const {isLoggedIn} = useAuthForContext();
   return useQuery({
     queryKey: ["userProfile"],
     queryFn: getUserProfile,
-    enabled,
+    enabled: isLoggedIn,
   });
 }
 
 export function useAuth() {
+  const {isLoggedIn} = useAuthForContext();
   return useQuery({
     queryKey: ["auth"],
     queryFn: checkLoginStatus,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    enabled: isLoggedIn,
   });
 }
 
@@ -63,12 +70,14 @@ export function useLogout() {
   });
 }
 
-export function useSocialLinks() {
+export function useSocialLinks() {  
+  const {isLoggedIn} = useAuthForContext();
   return useQuery({
     queryKey: ["socialLinks"],
     queryFn: getSocialLinks,
     staleTime: 300000,
     refetchOnWindowFocus: false,
+    enabled: isLoggedIn,
   });
 }
 
@@ -83,9 +92,11 @@ export function useVaultEntries(enabled: boolean) {
 }
 
 export function useFetchHandbook() {
+  const {isLoggedIn} = useAuthForContext();
   return useQuery({
     queryKey: ["handbook"],
     queryFn: getHandbookInfo,
+    enabled: isLoggedIn,
   });
 }
 
