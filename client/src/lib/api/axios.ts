@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL;
+const baseURL = import.meta.env.VITE_API_BASE_URL || "https://primer-backend-service.onrender.com";
 console.log("API Base URL:", baseURL);
 
 const api = axios.create({
