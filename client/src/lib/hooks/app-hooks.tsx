@@ -55,6 +55,7 @@ export function useDashboard() {
 export function useDashboardCache() {
   return useQuery<User>({
     queryKey: ["User"],
+    queryFn: () => Promise.resolve({} as User),
     enabled: false, // !remember: false since reads from cache
   });
 }

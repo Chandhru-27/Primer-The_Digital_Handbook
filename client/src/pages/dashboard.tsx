@@ -52,7 +52,7 @@ export default function Dashboard() {
       stats: `${vaultCount} Vault Entries`,
     },
   ];
-  console.log("Dashboard query executed", data);
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
