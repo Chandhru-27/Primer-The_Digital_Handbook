@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -10,16 +10,29 @@ import Profile from "@/pages/profile";
 import SocialLinks from "@/pages/social-links";
 import Vault from "@/pages/vault";
 import SigninSignup from "@/pages/signin-signup";
+import { useAuthForContext } from "./lib/auth/auth-context";
 
 function Router() {
-  return (
+  const { isLoggedIn } = useAuthForContext();
+
+  return isLoggedIn ? (
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/profile" component={Profile} />
       <Route path="/social-links" component={SocialLinks} />
       <Route path="/vault" component={Vault} />
-      <Route path="/auth" component={SigninSignup} />
+      {/* If logged in user tries to go to /auth, maybe redirect them home? */}
+      <Route path="/auth">
+        <Redirect to="/" />
+      </Route>
       <Route component={NotFound} />
+    </Switch>
+  ) : (
+    <Switch>
+      <Route path="/auth" component={SigninSignup} />
+      <Route>
+        <Redirect to="/auth" />
+      </Route>
     </Switch>
   );
 }
@@ -40,7 +53,7 @@ function App() {
               <header className="flex items-center justify-between p-4 border-b border-border bg-background">
                 <SidebarTrigger data-testid="button-sidebar-toggle" />
               </header>
-              <main className="flex-1 overflow-hidden">
+              <main className="flex-1 overflow-hidden ">
                 <Router />
               </main>
             </div>
