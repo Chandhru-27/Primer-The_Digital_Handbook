@@ -5,7 +5,7 @@ console.log('API Base URL (from ENV):', BASE_URL_ENV); // <--- ADD THIS LINE
 console.log('Final URL used:', BASE_URL_ENV || "http://localhost:5000");
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "https://primer-backend-service.onrender.com",
   withCredentials: true,
   allowAbsoluteUrls: true,
   headers: {
