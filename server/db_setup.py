@@ -11,31 +11,46 @@ postgreSQL_pool = None
 
 def initialize_connection_pool():
     """
-    Create connection pool.
+    Create connection pool, appending SSL mode directly to DSN to avoid keyword conflicts.
     Priority 1: DATABASE_URL (Production/Render/Supabase Pooler)
     Priority 2: Individual Params (Local Development)
     """
     global postgreSQL_pool
     
-    ssl_config = "require" if os.getenv("FLASK_ENV") == "production" else "disable"
+    is_prod = os.getenv("FLASK_ENV") == "production"
+    ssl_config = "require" if is_prod else "disable"
 
     pool_kwargs = {
         "minconn": 1,
         "maxconn": 20,
-        "sslmode": ssl_config
     }
 
+    # --- HANDLE DATABASE_URL (RENDER/SUPABASE) PATH ---
     if os.getenv('DATABASE_URL'):
-        print(f"Initializing pool using DATABASE_URL (SSL: {ssl_config})...")
-        pool_kwargs["dsn"] = os.getenv('DATABASE_URL')
+        database_url = os.getenv('DATABASE_URL')
+        
+        # 1. Append sslmode to the DSN string as a query parameter (?param=value)
+        # This prevents the "duplicate SASL authentication" keyword conflict.
+        if '?' in database_url:
+            final_dsn = f"{database_url}&sslmode={ssl_config}"
+        else:
+            final_dsn = f"{database_url}?sslmode={ssl_config}"
+            
+        print(f"Initializing pool using DSN (SSL: {ssl_config})...")
+        pool_kwargs["dsn"] = final_dsn
+        
+        # IMPORTANT: Do NOT set pool_kwargs["sslmode"] here.
     
+    # --- HANDLE INDIVIDUAL PARAMETERS (LOCAL DEV) PATH ---
     elif os.getenv('PG_HOST'):
         print(f"Initializing pool using PG_HOST variables (SSL: {ssl_config})...")
+        # For individual params, we pass sslmode as a standard keyword argument
         pool_kwargs["host"] = os.getenv('PG_HOST')
         pool_kwargs["database"] = os.getenv('PG_DB')
         pool_kwargs["user"] = os.getenv('PG_USER')
         pool_kwargs["password"] = os.getenv('PG_PASSWORD')
         pool_kwargs["port"] = os.getenv('PG_PORT')
+        pool_kwargs["sslmode"] = ssl_config  # Only set keyword argument here
     
     else:
         print("CRITICAL ERROR: No database configuration found in environment variables.")
