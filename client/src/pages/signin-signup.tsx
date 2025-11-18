@@ -65,7 +65,7 @@ export default function SigninSignup() {
         queryClient.invalidateQueries({ queryKey: ["auth"] });
         queryClient.invalidateQueries({ queryKey: ["userProfile"] });
         window.dispatchEvent(new Event("auth-change"));
-        setLocation("/");
+        window.location.reload();
       }
     } catch (error) {
       toast({
@@ -166,7 +166,7 @@ export default function SigninSignup() {
 
   return (
     <div className="max-h-screen flex justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-4 overflow-y-auto">
-      <div className="w-full max-w-md max-h-screen">
+      <div className="w-full max-w-md h-screen">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">Primer</h1>
           <p className="text-muted-foreground">Your personal handbook</p>
@@ -261,7 +261,7 @@ export default function SigninSignup() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="signup">
+          <TabsContent value="signup" className="pb-4">
             <Card>
               <CardHeader>
                 <CardTitle>Create account</CardTitle>
@@ -391,7 +391,7 @@ export default function SigninSignup() {
           </TabsContent>
         </Tabs>
 
-        <div className="text-center mt-6">
+        <div className="text-center mt-6 ">
           <p className="text-sm text-muted-foreground">
             By signing up, you agree to our{" "}
             <Link href="#" className="text-primary hover:underline">
