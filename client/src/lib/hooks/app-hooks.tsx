@@ -99,9 +99,11 @@ export function useVaultEntries(enabled: boolean) {
 }
 
 export function useFetchHandbook() {
+  const {isLoggedIn} = useAuthForContext();
   return useQuery({
     queryKey: ["handbook"],
     queryFn: getHandbookInfo,
+    enabled: isLoggedIn,
   });
 }
 
