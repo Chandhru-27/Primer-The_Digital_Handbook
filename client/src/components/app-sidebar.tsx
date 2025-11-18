@@ -24,7 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import { ThemeToggle } from "../components/theme-toggle";
 import { useToast } from "../lib/hooks/use-toast";
-import { useAuth, useUserProfile, useLogout } from "../lib/hooks/app-hooks";
+import { useDashboardCache, useLogout } from "../lib/hooks/app-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function AppSidebar() {
@@ -52,13 +52,19 @@ export function AppSidebar() {
   ];
 
   const [location] = useLocation();
+
   const { toast } = useToast();
-  const { data: loggedIn } = useAuth();
-  const { data: user } = useUserProfile(!!loggedIn);
-  const logout = useLogout();
+
+  const { data: user } = useDashboardCache();
+
   const queryClient = useQueryClient();
 
+  const logout = useLogout();
+
   const userName = user?.username || "Username";
+
+  const loggedIn = user?.is_logged_in || false;
+
   const userInitials = userName
     .split(" ")
     .map((n: string) => n[0])
@@ -122,16 +128,22 @@ export function AppSidebar() {
                 onClick={() => {
                   logout.mutateAsync().then(() => {
                     queryClient.invalidateQueries({ queryKey: ["auth"] });
-                    queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-                    queryClient.invalidateQueries({ queryKey: ["vaultEntries"] });
-                    queryClient.invalidateQueries({queryKey: ["socialLinks"]});
-                    queryClient.invalidateQueries({queryKey: ["dashboard"]});
-                    queryClient.invalidateQueries({queryKey: ["handbook"]});
+                    queryClient.invalidateQueries({
+                      queryKey: ["userProfile"],
+                    });
+                    queryClient.invalidateQueries({
+                      queryKey: ["vaultEntries"],
+                    });
+                    queryClient.invalidateQueries({
+                      queryKey: ["socialLinks"],
+                    });
+                    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+                    queryClient.invalidateQueries({ queryKey: ["handbook"] });
                     toast({
                       title: "Logged out",
                       description: "You have been successfully logged out.",
                     });
-                    window.dispatchEvent(new Event('auth-change'));
+                    window.dispatchEvent(new Event("auth-change"));
                     window.location.reload();
                   });
                 }}

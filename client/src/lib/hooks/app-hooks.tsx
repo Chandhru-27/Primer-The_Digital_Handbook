@@ -19,21 +19,48 @@ import {
   VaultEntry,
   VaultEntryInput,
 } from "../api/vault";
-import { checkLoginStatus, signIn, signUp, logOutUser, unlockVault } from "../api/auth";
+import {
+  checkLoginStatus,
+  signIn,
+  signUp,
+  logOutUser,
+  unlockVault,
+} from "../api/auth";
 import { useAuthForContext } from "../auth/auth-context";
 
+type User = {
+  username: string;
+  is_logged_in: boolean;
+  profile_pic: string;
+};
 
 export function useDashboard() {
-  const {isLoggedIn} = useAuthForContext();
+  const queryClient = useQueryClient();
+  const { isLoggedIn } = useAuthForContext();
   return useQuery({
     queryKey: ["dashboard"],
-    queryFn: getDashboard,
+    queryFn: async () => {
+      const data = await getDashboard();
+      queryClient.setQueryData(["User"], {
+        username: data.username,
+        profile_pic: data.profile_pic,
+        is_logged_in: true,
+      });
+      return data;
+    },
     enabled: isLoggedIn,
   });
 }
 
-export function useUserProfile(enabled = true) {
-  const {isLoggedIn} = useAuthForContext();
+export function useDashboardCache() {
+  return useQuery<User>({
+    queryKey: ["User"],
+    enabled: false, // !remember: false since reads from cache
+  });
+}
+
+export function useUserProfile() {
+  const { isLoggedIn } = useAuthForContext();
   return useQuery({
     queryKey: ["userProfile"],
     queryFn: getUserProfile,
@@ -42,36 +69,16 @@ export function useUserProfile(enabled = true) {
 }
 
 export function useAuth() {
-  const {isLoggedIn} = useAuthForContext();
   return useQuery({
     queryKey: ["auth"],
     queryFn: checkLoginStatus,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    enabled: isLoggedIn,
   });
 }
 
-export function useSignIn() {
-  return useMutation({
-    mutationFn: signIn,
-  });
-}
-
-export function useSignUp() {
-  return useMutation({
-    mutationFn: signUp,
-  });
-}
-
-export function useLogout() {
-  return useMutation({
-    mutationFn: logOutUser,
-  });
-}
-
-export function useSocialLinks() {  
-  const {isLoggedIn} = useAuthForContext();
+export function useSocialLinks() {
+  const { isLoggedIn } = useAuthForContext();
   return useQuery({
     queryKey: ["socialLinks"],
     queryFn: getSocialLinks,
@@ -92,11 +99,27 @@ export function useVaultEntries(enabled: boolean) {
 }
 
 export function useFetchHandbook() {
-  const {isLoggedIn} = useAuthForContext();
   return useQuery({
     queryKey: ["handbook"],
     queryFn: getHandbookInfo,
-    enabled: isLoggedIn,
+  });
+}
+
+export function useSignIn() {
+  return useMutation({
+    mutationFn: signIn,
+  });
+}
+
+export function useSignUp() {
+  return useMutation({
+    mutationFn: signUp,
+  });
+}
+
+export function useLogout() {
+  return useMutation({
+    mutationFn: logOutUser,
   });
 }
 
@@ -203,7 +226,7 @@ export function useAddVaultEntry() {
         "vaultEntries",
       ]);
 
-      const tempId = Date.now() * -1; 
+      const tempId = Date.now() * -1;
       const tempEntry: VaultEntry = {
         id: tempId,
         domain: newEntry.domain,
