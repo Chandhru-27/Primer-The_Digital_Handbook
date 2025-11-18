@@ -1,11 +1,10 @@
 import axios from "axios";
 
-const BASE_URL_ENV = import.meta.env.VITE_API_BASE_URL;
-console.log('API Base URL (from ENV):', BASE_URL_ENV); // <--- ADD THIS LINE
-console.log('Final URL used:', BASE_URL_ENV || "http://localhost:5000");
+const baseURL = import.meta.env.VITE_API_BASE_URL || "https://primer-backend-service.onrender.com";
+console.log("API Base URL:", baseURL);
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://primer-backend-service.onrender.com",
+  baseURL,
   withCredentials: true,
   allowAbsoluteUrls: true,
   headers: {
