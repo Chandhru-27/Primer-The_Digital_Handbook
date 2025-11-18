@@ -31,10 +31,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "../lib/hooks/use-toast";
-import {
-  UserProfile,
-  HandbookEntry,
-} from "@/lib/api/user";
+import { UserProfile, HandbookEntry } from "@/lib/api/user";
 import {
   useFetchHandbook,
   useUpdateHandbook,
@@ -223,6 +220,39 @@ export default function Profile() {
         description: "Failed to update handbook. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleCancelBasicEdit = () => {
+    setIsEditingBasic(false);
+    if (user) {
+      setBasicInfo({
+        name: user.full_name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        age: user.age?.toString() || "",
+        gender: user.gender || "",
+        address: user.address || "",
+      });
+    }
+  };
+
+  const handleCancelHanbookEdit = () => {
+    setIsEditingHandbook(false);
+    if (handbookData) {
+      if (handbookData) {
+        const map = Object.fromEntries(
+          handbookData.map((data) => [data.field_name, data.field_value])
+        );
+
+        setHandbookInfo({
+          biography: map.biography || "",
+          hobbies: map.hobbies || "",
+          skills: map.skills || "",
+          goals: map.goals || "",
+          notes: map.notes || "",
+        });
+      }
     }
   };
 
@@ -461,10 +491,7 @@ export default function Profile() {
             {/* Save & Cancel Buttons */}
             {isEditingBasic && (
               <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditingBasic(false)}
-                >
+                <Button variant="outline" onClick={handleCancelBasicEdit}>
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
@@ -627,7 +654,7 @@ export default function Profile() {
               <div className="flex justify-end gap-3 pt-6 border-t">
                 <Button
                   variant="outline"
-                  onClick={() => setIsEditingHandbook(false)}
+                  onClick={handleCancelHanbookEdit}
                 >
                   <X className="h-4 w-4 mr-2" />
                   Cancel
