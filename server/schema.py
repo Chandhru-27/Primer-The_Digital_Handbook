@@ -117,14 +117,21 @@ CREATE_TABLE_TOKEN_BLOCKLIST = """
 """
 
 SCHEMA_LIST = [
-    CREATE_HANDBOOK_UNIQUE_CONSTRAINT,
+    # 1. Types must be created first so 'users' can use them
     CREATE_TYPE_GENDER_ENUM,
+
+    # 2. Users is the parent table for everything else
     CREATE_TABLE_USERS, 
+
+    # 3. Create child tables
     CREATE_TABLE_PERSONAL_HANDBOOK,
     CREATE_TABLE_SOCIAL_LINKS,
     CREATE_TABLE_VAULT,
-    ADD_VAULT_NOTES_COLUMN,
-    ADD_VAULT_URL_COLUMN,
     CREATE_TABLE_VAULT_PASSWORDS,
-    CREATE_TABLE_TOKEN_BLOCKLIST
+    CREATE_TABLE_TOKEN_BLOCKLIST,
+
+    # 4. Modifications/Constraints must happen AFTER the tables exist
+    CREATE_HANDBOOK_UNIQUE_CONSTRAINT, 
+    ADD_VAULT_NOTES_COLUMN,
+    ADD_VAULT_URL_COLUMN
 ]

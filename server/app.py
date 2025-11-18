@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from extensions import limiter
+from werkzeug.middleware.proxy_fix import ProxyFix
 from db_setup import initialize_connection_pool, initialize_database_and_create_tables
 from config import DevConfig, ProdConfig
 
@@ -14,6 +15,9 @@ def create_app():
 
     if os.getenv("FLASK_ENV") == "production":
         app.config.from_object(ProdConfig)
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+        )
     else:
         app.config.from_object(DevConfig)
 
@@ -66,12 +70,15 @@ def create_app():
 
 app = create_app()
 
+with app.app_context():
+    initialize_connection_pool()
+    initialize_database_and_create_tables()
+    
 @app.route('/')
 def home():
     return "Welcome to primer backend!"
 
 if __name__ == "__main__":
-    initialize_connection_pool()
-    initialize_database_and_create_tables()
+    
     app.run(debug=app.config["DEBUG"], host="localhost", port=5000)
 

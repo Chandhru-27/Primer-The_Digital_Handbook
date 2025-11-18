@@ -21,7 +21,7 @@ def initialize_connection_pool():
             user=os.getenv('PG_USER'),
             password=os.getenv('PG_PASSWORD'),
             port=os.getenv('PG_PORT'),
-            sslmode='disable' 
+            sslmode= "require" if os.getenv("FLASK_ENV") == "production" else "disable"
         )
         print("Connection pool created successfully")
     except psycopg2.Error as e:

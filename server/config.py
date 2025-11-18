@@ -9,7 +9,6 @@ class BaseConfig:
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
     # CORS
-    CORS_ORIGINS = []
     CORS_SUPPORTS_CREDENTIALS = True
     CORS_ALLOW_HEADERS = ["Content-Type", "Authorization", "X-Requested-With"]
     CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -18,7 +17,6 @@ class BaseConfig:
     # JWT cookie settings
     JWT_TOKEN_LOCATION = ["cookies"]
     JWT_COOKIE_SECURE = True               
-    JWT_COOKIE_SAMESITE = "Lax"
     JWT_COOKIE_CSRF_PROTECT = True        
     JWT_ACCESS_COOKIE_PATH = '/'
     JWT_REFRESH_COOKIE_PATH = '/'
@@ -28,18 +26,20 @@ class BaseConfig:
     JWT_REFRESH_TOKEN_EXPIRES = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", 604800))
 
     # RATE LIMIT defaults
-    RATELIMIT_DEFAULT = "5 per minute"
+    RATELIMIT_DEFAULT = "15 per minute"
 
 class DevConfig(BaseConfig):
     """Development config: Allow non-HTTPS and non-CSRF protect"""
     DEBUG = True
-    JWT_COOKIE_SECURE = False         
+    JWT_COOKIE_SECURE = False  
+    JWT_COOKIE_SAMESITE = "Lax"       
     JWT_COOKIE_CSRF_PROTECT = False    
-    CORS_ORIGINS = ["http://localhost:5173","http://127.0.0.1:5173"]
+    CORS_ORIGINS = ["http://localhost:5173","http://127.0.0.1:5173","https://primer-the-digital-handbook.vercel.app"]
 
 class ProdConfig(BaseConfig):
     """Production config: Enforce HTTPS and CSRF protect for custom domain"""
     DEBUG = False
-    JWT_COOKIE_SECURE = True           
+    JWT_COOKIE_SECURE = True   
+    JWT_COOKIE_SAMESITE = "None"        
     JWT_COOKIE_CSRF_PROTECT = True
     CORS_ORIGINS = [os.getenv("PROD_FRONTEND_ORIGIN")]  
