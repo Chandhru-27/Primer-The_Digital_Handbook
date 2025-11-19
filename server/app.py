@@ -1,6 +1,7 @@
 from flask import Flask
 import os
 from dotenv import load_dotenv
+from flask import request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from extensions import limiter
@@ -15,11 +16,13 @@ def create_app():
 
     if os.getenv("FLASK_ENV") == "production":
         app.config.from_object(ProdConfig)
-        app.wsgi_app = ProxyFix(
-            app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
-        )
     else:
         app.config.from_object(DevConfig)
+    
+    # Appy proxyfix for render deployment
+    app.wsgi_app = ProxyFix(
+            app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+        )
 
     # Global JWT manager instance
     jwt = JWTManager(app)
@@ -33,7 +36,8 @@ def create_app():
         origins=app.config["CORS_ORIGINS"],
         supports_credentials=app.config["CORS_SUPPORTS_CREDENTIALS"],
         allow_headers=app.config["CORS_ALLOW_HEADERS"],
-        methods=app.config.get("CORS_METHODS", ["GET", "POST", "OPTIONS"]),
+        expose_headers=app.config.get("CORS_EXPOSE_HEADERS"),
+        methods=app.config.get("CORS_METHODS"),
     )
     
     # Import and register blueprints here to avoid circular imports

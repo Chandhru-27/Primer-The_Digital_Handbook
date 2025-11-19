@@ -40,6 +40,8 @@ class ProdConfig(BaseConfig):
     """Production config: Enforce HTTPS and CSRF protect for custom domain"""
     DEBUG = False
     JWT_COOKIE_SECURE = True   
+    JWT_COOKIE_DOMAIN = ".onrender.com"
     JWT_COOKIE_SAMESITE = "None"        
     JWT_COOKIE_CSRF_PROTECT = True
-    CORS_ORIGINS = [os.getenv("PROD_FRONTEND_ORIGIN")]  
+    CORS_ORIGINS = [os.getenv("PROD_FRONTEND_ORIGIN")]
+    CORS_EXPOSE_HEADERS = ["X-CSRF-TOKEN"]
