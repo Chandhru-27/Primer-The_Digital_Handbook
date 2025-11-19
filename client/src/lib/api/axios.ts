@@ -1,21 +1,22 @@
 import axios from "axios";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ;
-console.log("API Base URL:", baseURL);
 
 const api = axios.create({
   baseURL,
   withCredentials: true,
   allowAbsoluteUrls: true,
-  headers: {
-    "Content-Type": "application/json",
-    "X-Requested-With": "XMLHttpRequest",
-  },
+  headers: {},
   timeout: 10000,
 });
 
 api.interceptors.request.use(
   (config) => {
+    if (config.method !== "options") {
+      config.headers["Content-Type"] = "application/json"
+      config.headers["X-Requested-With"] = "XMLHttpRequest"
+    }
+
     console.log(`[REQUEST] ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
