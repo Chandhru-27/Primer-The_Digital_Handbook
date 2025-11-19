@@ -6,17 +6,15 @@ const api = axios.create({
   baseURL,
   withCredentials: true,
   allowAbsoluteUrls: true,
-  headers: {},
+  headers: {
+    "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
+  },
   timeout: 10000,
 });
 
 api.interceptors.request.use(
   (config) => {
-    if (config.method !== "options") {
-      config.headers["Content-Type"] = "application/json"
-      config.headers["X-Requested-With"] = "XMLHttpRequest"
-    }
-
     console.log(`[REQUEST] ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
