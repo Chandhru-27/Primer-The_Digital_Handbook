@@ -194,8 +194,7 @@ export default function SigninSignup() {
           <div className="flex justify-center gap-1 text-center my-5 bg-[#8C1717] p-2 border-1 rounded-md">
             <AlertCircle size={20} color="white" />
             <p className="text-sm text-white/90">
-              Our server may be waking up🥱. If your login fails, please wait a
-              minute and try again .
+              Our server may be waking up🥱. If your login fails, refresh and try again .
             </p>
           </div>
 
