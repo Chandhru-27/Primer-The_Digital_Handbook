@@ -19,10 +19,15 @@ api.interceptors.request.use(
   (config) => {
     config.headers["X-Requested-With"] = "XMLHttpRequest";
 
-    if (config.method && ["post", "put", "patch", "delete"].includes(config.method.toLowerCase())) {
+    if (
+      config.method &&
+      ["post", "put", "patch", "delete"].includes(config.method.toLowerCase())
+    ) {
       const csrfToken = getCSRFtoken();
       if (csrfToken) {
         config.headers["X-CSRF-TOKEN"] = csrfToken;
+      } else {
+        console.error("CSRF Token expected but not found in cookies!");
       }
     }
 
