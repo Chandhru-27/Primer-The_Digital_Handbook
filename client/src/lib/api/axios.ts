@@ -1,6 +1,11 @@
 import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL ;
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+
+const getCSRFtoken = () => {
+  const match = document.cookie.match("/csrf_access_token=([^;]+)/");
+  return match ? match[1] : null;
+};
 
 const api = axios.create({
   baseURL,
@@ -12,9 +17,13 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    if (config.method !== "options") {
-      config.headers["Content-Type"] = "application/json"
-      config.headers["X-Requested-With"] = "XMLHttpRequest"
+    config.headers["X-Requested-With"] = "XMLHttpRequest";
+
+    if (config.method && ["post", "put", "patch", "delete"].includes(config.method.toLowerCase())) {
+      const csrfToken = getCSRFtoken();
+      if (csrfToken) {
+        config.headers["X-CSRF-TOKEN"] = csrfToken;
+      }
     }
 
     console.log(`[REQUEST] ${config.method?.toUpperCase()} ${config.url}`);
