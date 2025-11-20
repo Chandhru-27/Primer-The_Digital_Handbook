@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 import psycopg2
 from db_setup import get_db_connection
 import re
+import os
 from extensions import bcrypt, limiter
 import datetime
 from flask_jwt_extended import (
@@ -141,14 +142,15 @@ def signin():
     set_access_cookies(response=response, encoded_access_token=access_token)
     set_refresh_cookies(response=response, encoded_refresh_token=refresh_token)
 
-    response.set_cookie(
-        "csrf_access_token",
-        get_csrf_token(access_token),
-        secure=True,
-        httponly=False,      
-        samesite="None",
-        path="/"
-    )
+    if os.getenv("FLASK_ENV") == "production":
+        response.set_cookie(
+            "csrf_access_token",
+            get_csrf_token(access_token),
+            secure=True,
+            httponly=False,      
+            samesite="None",
+            path="/"
+        )
 
     return response, 200
 

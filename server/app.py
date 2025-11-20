@@ -56,18 +56,40 @@ def create_app():
     # Security headers configuration
     @app.after_request
     def set_security_headers(response):
-        response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'DENY'
-        response.headers['Content-Security-Policy'] = (
-            "default-src 'self'; "
-            "script-src 'self'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; "
-            "font-src 'self'; "
-            "object-src 'none'; "
-            "base-uri 'self'; "
-            "form-action 'self'"
-        )
+        env = os.getenv("FLASK_ENV", "production")
+        frontend = os.getenv("PROD_FRONTEND_ORIGIN", "")
+
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+
+        # ---- Development CSP ----
+        if env == "development":
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173; "
+                "style-src 'self' 'unsafe-inline' http://localhost:5173; "
+                "img-src 'self' data:; "
+                "font-src 'self'; "
+                "object-src 'none'; "
+                "base-uri 'self'; "
+                "form-action 'self'"
+            )
+        
+        # ---- Production CSP ----
+        else:
+            csp = (
+                "default-src 'self'; "
+                f"script-src 'self' {frontend}; "
+                f"style-src 'self' 'unsafe-inline' {frontend}; "
+                "img-src 'self' data:; "
+                "font-src 'self'; "
+                "object-src 'none'; "
+                "base-uri 'self'; "
+                "form-action 'self'"
+            )
+
+        response.headers["Content-Security-Policy"] = csp
+
         return response
 
     return app
