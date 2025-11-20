@@ -3,7 +3,7 @@ import axios from "axios";
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const getCSRFtoken = () => {
-  const match = document.cookie.match("/access_csrf_token=([^;]+)/");
+  const match = document.cookie.match(/csrf_access_token=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 };
 
