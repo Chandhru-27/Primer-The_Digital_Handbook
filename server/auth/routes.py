@@ -8,6 +8,7 @@ from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity,
     get_jwt,
+    get_csrf_token,
     create_access_token, 
     create_refresh_token, 
     set_refresh_cookies,
@@ -139,6 +140,15 @@ def signin():
 
     set_access_cookies(response=response, encoded_access_token=access_token)
     set_refresh_cookies(response=response, encoded_refresh_token=refresh_token)
+
+    response.set_cookie(
+        "csrf_access_token",
+        get_csrf_token(access_token),
+        secure=True,
+        httponly=False,      
+        samesite="None",
+        path="/"
+    )
 
     return response, 200
 
