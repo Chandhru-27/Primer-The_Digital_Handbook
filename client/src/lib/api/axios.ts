@@ -4,7 +4,7 @@ const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const getCSRFtoken = () => {
   const match = document.cookie.match("/csrf_access_token=([^;]+)/");
-  return match ? match[1] : null;
+  return match ? decodeURIComponent(match[1]) : null;
 };
 
 const api = axios.create({
