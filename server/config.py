@@ -19,7 +19,7 @@ class BaseConfig:
     JWT_COOKIE_SECURE = True               
     JWT_COOKIE_CSRF_PROTECT = True        
     JWT_ACCESS_COOKIE_PATH = '/'
-    JWT_REFRESH_COOKIE_PATH = '/'
+    JWT_REFRESH_COOKIE_PATH = '/auth/refresh'
 
     # Token expiry minutes
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 1600))
@@ -35,7 +35,7 @@ class DevConfig(BaseConfig):
     JWT_ACCESS_CSRF_COOKIE_HTTPONLY = False
     JWT_COOKIE_SAMESITE = "Lax"       
     JWT_COOKIE_CSRF_PROTECT = False    
-    CORS_ORIGINS = ["http://localhost:5173","http://127.0.0.1:5173","https://primer-the-digital-handbook.vercel.app"]
+    CORS_ORIGINS = ["http://localhost:5173","http://127.0.0.1:5173"]
 
 class ProdConfig(BaseConfig):
     """Production config: Enforce HTTPS and CSRF protect for custom domain"""
