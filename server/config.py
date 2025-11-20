@@ -41,7 +41,7 @@ class ProdConfig(BaseConfig):
     """Production config: Enforce HTTPS and CSRF protect for custom domain"""
     DEBUG = False
     JWT_COOKIE_SECURE = True   
-    JWT_ACCESS_CSRF_COOKIE_HTTPONLY = False
+    JWT_ACCESS_CSRF_COOKIE_HTTPONLY = True
     JWT_COOKIE_SAMESITE = "None"      
     JWT_COOKIE_CSRF_PROTECT = True
     CORS_ORIGINS = [os.getenv("PROD_FRONTEND_ORIGIN")]
