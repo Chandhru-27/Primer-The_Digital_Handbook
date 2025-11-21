@@ -39,7 +39,8 @@ def create_app():
         expose_headers=app.config.get("CORS_EXPOSE_HEADERS"),
         methods=app.config.get("CORS_METHODS"),
     )
-    
+    # DEBUG frontend url
+    print(">>> Loaded PROD_FRONTEND_ORIGIN:", app.config["CORS_ORIGINS"])
     # Import and register blueprints here to avoid circular imports
     from auth.routes import auth_bp
     from personal_info.routes import personal_bp
