@@ -10,7 +10,7 @@ class BaseConfig:
 
     # CORS
     CORS_SUPPORTS_CREDENTIALS = True
-    CORS_ALLOW_HEADERS = ["Content-Type", "Authorization", "X-Requested-With"]
+    CORS_ALLOW_HEADERS = ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-TOKEN"]
     CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 
 
