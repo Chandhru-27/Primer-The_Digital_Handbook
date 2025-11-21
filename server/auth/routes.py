@@ -137,22 +137,11 @@ def signin():
     access_token = create_access_token(identity=str(user_id), fresh=True)
     refresh_token = create_refresh_token(identity=str(user_id))
 
-    response = jsonify({"message": "Login successful"})
-
-    set_access_cookies(response=response, encoded_access_token=access_token)
-    set_refresh_cookies(response=response, encoded_refresh_token=refresh_token)
-
-    if os.getenv("FLASK_ENV") == "production":
-        response.set_cookie(
-            "csrf_access_token",
-            get_csrf_token(access_token),
-            secure=True,
-            httponly=False,      
-            samesite="None",
-            path="/"
-        )
-
-    return response, 200
+    return jsonify({
+        "message": "Login successful",
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }), 200
 
 
 @auth_bp.route('/refresh', methods=['POST'])
@@ -166,8 +155,7 @@ def refresh_access_token():
         return jsonify({"message": "Token revoked"}), 401
     
     new_access_token = create_access_token(identity=identity)
-    response = jsonify({"message" : "Access token refreshed"})
-    set_access_cookies(response=response, encoded_access_token=new_access_token)
+    response = jsonify({"message" : "Access token refreshed", "access_token": new_access_token})
     
     return response,200
 
@@ -191,7 +179,6 @@ def logout():
     add_token_to_blocklist(jti=jti, token_type="access", user_id=identity)
 
     response = jsonify({"message": "Logout successful"})
-    unset_jwt_cookies(response=response)
 
     return response,200
 

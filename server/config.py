@@ -8,18 +8,13 @@ class BaseConfig:
     SECRET_KEY = os.getenv("SECRET_KEY")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 
+    # JWT token settings
+    JWT_TOKEN_LOCATION = ["headers"]
+
     # CORS
-    CORS_SUPPORTS_CREDENTIALS = True
-    CORS_ALLOW_HEADERS = ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-TOKEN"]
+    CORS_SUPPORTS_CREDENTIALS = False
+    CORS_ALLOW_HEADERS = ["Content-Type", "Authorization", "X-Requested-With"]
     CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-
-
-    # JWT cookie settings
-    JWT_TOKEN_LOCATION = ["cookies"]
-    JWT_COOKIE_SECURE = True               
-    JWT_COOKIE_CSRF_PROTECT = True        
-    JWT_ACCESS_COOKIE_PATH = '/'
-    JWT_REFRESH_COOKIE_PATH = '/auth/refresh'
 
     # Token expiry minutes
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 1600))
@@ -31,18 +26,9 @@ class BaseConfig:
 class DevConfig(BaseConfig):
     """Development config: Allow non-HTTPS and non-CSRF protect"""
     DEBUG = True
-    JWT_COOKIE_SECURE = False  
-    JWT_ACCESS_CSRF_COOKIE_HTTPONLY = False
-    JWT_COOKIE_SAMESITE = "Lax"       
-    JWT_COOKIE_CSRF_PROTECT = False    
     CORS_ORIGINS = ["http://localhost:5173","http://127.0.0.1:5173"]
 
 class ProdConfig(BaseConfig):
     """Production config: Enforce HTTPS and CSRF protect for custom domain"""
     DEBUG = False
-    JWT_COOKIE_SECURE = True   
-    JWT_ACCESS_CSRF_COOKIE_HTTPONLY = False
-    JWT_COOKIE_SAMESITE = "Lax"      
-    JWT_COOKIE_CSRF_PROTECT = True
     CORS_ORIGINS = [os.getenv("PROD_FRONTEND_ORIGIN")]
-    CORS_EXPOSE_HEADERS = ["X-CSRF-TOKEN"]
