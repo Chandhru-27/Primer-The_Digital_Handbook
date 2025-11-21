@@ -6,33 +6,17 @@ const baseURL = isProd
   ? import.meta.env.VITE_API_BASE_URL
   : "http://localhost:5000";
 
-const getCSRFtoken = () => {
-  const match = document.cookie.match(/csrf_access_token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
-};
-
 const api = axios.create({
   baseURL,
-  withCredentials: true,
-  allowAbsoluteUrls: true,
   headers: {},
   timeout: 10000,
 });
 
 api.interceptors.request.use(
   (config) => {
-    config.headers["X-Requested-With"] = "XMLHttpRequest";
-
-    if (
-      config.method &&
-      ["post", "put", "patch", "delete"].includes(config.method.toLowerCase())
-    ) {
-      const csrfToken = getCSRFtoken();
-      if (csrfToken) {
-        config.headers["X-CSRF-TOKEN"] = csrfToken;
-      } else {
-        console.error("CSRF Token expected but not found in cookies!");
-      }
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
     }
 
     console.log(`[REQUEST] ${config.method?.toUpperCase()} ${config.url}`);
