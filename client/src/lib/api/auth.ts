@@ -30,6 +30,9 @@ export const signUp = async (formData: SignupFormData) => {
 export const signIn = async (formData: SignInFormData) => {
   try {
     const response = await api.post("/auth/signin", formData);
+    if (response.data.access_token) {
+      localStorage.setItem("access_token", response.data.access_token);
+    }
     return response.data;
   } catch (error) {
     handleAxiosError(error);
@@ -37,6 +40,9 @@ export const signIn = async (formData: SignInFormData) => {
 };
 
 export const checkLoginStatus = async () => {
+  const token = localStorage.getItem("access_token");
+  if (!token) return false;
+
   try {
     const response = await api.get("/auth/me");
     return response.data.logged_in;
@@ -46,6 +52,7 @@ export const checkLoginStatus = async () => {
 };
 
 export const logOutUser = async () => {
+  localStorage.removeItem("access_token");
   try {
     const response = await api.post("/auth/logout");
     return response.data;
