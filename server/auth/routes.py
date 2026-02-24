@@ -63,6 +63,21 @@ def add_token_to_blocklist(jti, token_type, user_id=None):
         finally:
             cur.close()
 
+@auth_bp.route('/keep-alive', methods=['HEAD','GET'])
+def keep_alive():
+    """Keeps database and production server alive from going idle."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        try:
+            cur.execute("SELECT 1")
+        except Exception as e:
+            conn.rollback()
+            return '', 503
+        finally:
+            cur.close()
+            
+    return '', 200
+
 
 @auth_bp.route('/signup', methods=['POST'])
 @limiter.limit("2 per minute")
@@ -101,7 +116,6 @@ def signup():
             return jsonify({"error": str(e)}), 400
         finally:
             cur.close()
-            conn.close()
 
     return jsonify({"message": "User created!", "user_id": user_id}), 201
   
